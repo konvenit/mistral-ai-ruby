@@ -58,8 +58,6 @@ module MistralAI
       raise TimeoutError, "Request timed out: #{e.message}"
     rescue Faraday::ConnectionFailed => e
       raise ConnectionError, "Connection failed: #{e.message}"
-    rescue StandardError => e
-      raise NetworkError, "Network error: #{e.message}"
     end
 
     private
