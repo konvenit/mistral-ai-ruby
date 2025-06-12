@@ -46,7 +46,7 @@ module MistralAI
         Array(tool_calls_data).map do |tool_call|
           {
             id: tool_call["id"] || tool_call[:id],
-            type: tool_call["type"] || tool_call[:type],
+            type: tool_call["type"] || tool_call[:type] || "function",
             function: parse_function(tool_call["function"] || tool_call[:function])
           }
         end
@@ -93,7 +93,7 @@ module MistralAI
         Array(tool_calls_data).map do |tool_call|
           hash = {}
           hash[:id] = tool_call["id"] || tool_call[:id] if tool_call["id"] || tool_call[:id]
-          hash[:type] = tool_call["type"] || tool_call[:type] if tool_call["type"] || tool_call[:type]
+          hash[:type] = tool_call["type"] || tool_call[:type] || "function"
           
           function_data = tool_call["function"] || tool_call[:function]
           if function_data
@@ -185,6 +185,58 @@ module MistralAI
         choices&.first&.finish_reason
       end
 
+      # Phase 4: Tool calling support
+      # Check if response contains tool calls
+      def has_tool_calls?
+        !!(message&.tool_calls && !message.tool_calls.empty?)
+      end
+
+      # Get tool calls from the response
+      def tool_calls
+        message&.tool_calls || []
+      end
+
+      # Extract tool calls as ToolCall objects (Phase 4 feature)
+      def extract_tool_calls
+        return [] unless defined?(Tools::ToolUtils)
+        Tools::ToolUtils.extract_tool_calls(self)
+      end
+
+      # Phase 4: Structured outputs support
+      # Parse response content as structured object
+      def structured_content(schema_class = nil)
+        content_text = content
+        return nil unless content_text
+
+        if defined?(MistralAI::StructuredOutputs::ObjectMapper)
+          begin
+            MistralAI::StructuredOutputs::ObjectMapper.map(content_text, schema_class)
+          rescue MistralAI::StructuredOutputs::ValidationError
+            # Return content as-is if JSON parsing fails
+            content_text
+          end
+        else
+          # Fallback to basic JSON parsing if StructuredOutputs not available
+          begin
+            JSON.parse(content_text)
+          rescue JSON::ParserError
+            content_text
+          end
+        end
+      end
+
+      # Validate response against schema
+      def validate_schema(schema)
+        return false unless content && defined?(StructuredOutputs::Utils)
+        
+        begin
+          StructuredOutputs::Utils.validate_json(content, schema)
+          true
+        rescue StructuredOutputs::ValidationError
+          false
+        end
+      end
+
       private
 
       def parse_choices(choices_data)
@@ -242,40 +294,40 @@ module MistralAI
 
     # Agent response for agent management operations
     class Agent
-    attr_reader :id, :name, :model, :version, :created_at, :updated_at, 
-                :instructions, :tools, :description, :completion_args, :handoffs, :object
+      attr_reader :id, :name, :model, :version, :created_at, :updated_at, 
+                  :instructions, :tools, :description, :completion_args, :handoffs, :object
 
-    def initialize(data)
-      @id = data["id"] || data[:id]
-      @name = data["name"] || data[:name]
-      @model = data["model"] || data[:model]
-      @version = data["version"] || data[:version]
-      @created_at = data["created_at"] || data[:created_at]
-      @updated_at = data["updated_at"] || data[:updated_at]
-      @instructions = data["instructions"] || data[:instructions]
-      @tools = data["tools"] || data[:tools]
-      @description = data["description"] || data[:description]
-      @completion_args = data["completion_args"] || data[:completion_args]
-      @handoffs = data["handoffs"] || data[:handoffs]
-      @object = data["object"] || data[:object] || "agent"
-    end
+      def initialize(data)
+        @id = data["id"] || data[:id]
+        @name = data["name"] || data[:name]
+        @model = data["model"] || data[:model]
+        @version = data["version"] || data[:version]
+        @created_at = data["created_at"] || data[:created_at]
+        @updated_at = data["updated_at"] || data[:updated_at]
+        @instructions = data["instructions"] || data[:instructions]
+        @tools = data["tools"] || data[:tools]
+        @description = data["description"] || data[:description]
+        @completion_args = data["completion_args"] || data[:completion_args]
+        @handoffs = data["handoffs"] || data[:handoffs]
+        @object = data["object"] || data[:object] || "agent"
+      end
 
-    def to_h
-      {
-        id: @id,
-        name: @name,
-        model: @model,
-        version: @version,
-        created_at: @created_at,
-        updated_at: @updated_at,
-        instructions: @instructions,
-        tools: @tools,
-        description: @description,
-        completion_args: @completion_args,
-        handoffs: @handoffs,
-        object: @object
-      }.compact
+      def to_h
+        {
+          id: @id,
+          name: @name,
+          model: @model,
+          version: @version,
+          created_at: @created_at,
+          updated_at: @updated_at,
+          instructions: @instructions,
+          tools: @tools,
+          description: @description,
+          completion_args: @completion_args,
+          handoffs: @handoffs,
+          object: @object
+        }.compact
+      end
     end
   end
 end
-  end

@@ -12,6 +12,10 @@ require_relative "mistral_ai/messages"
 require_relative "mistral_ai/responses"
 require_relative "mistral_ai/streaming"
 
+# Phase 4: Advanced Features
+require_relative "mistral_ai/tools"
+require_relative "mistral_ai/structured_outputs"
+
 module MistralAI
   class << self
     # Global configuration

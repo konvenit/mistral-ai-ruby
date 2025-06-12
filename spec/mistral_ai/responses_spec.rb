@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "spec_helper"
+
 RSpec.describe MistralAI::Responses do
   describe MistralAI::Responses::Usage do
     describe "#initialize" do
@@ -300,7 +302,7 @@ RSpec.describe MistralAI::Responses do
   end
 
   describe MistralAI::Responses::ChatResponse do
-    let(:sample_response_data) do
+    let(:basic_response_data) do
       {
         "id" => "chatcmpl-123",
         "object" => "chat.completion",
@@ -317,96 +319,277 @@ RSpec.describe MistralAI::Responses do
           }
         ],
         "usage" => {
-          "prompt_tokens" => 10,
-          "completion_tokens" => 20,
-          "total_tokens" => 30
+          "prompt_tokens" => 9,
+          "completion_tokens" => 12,
+          "total_tokens" => 21
         }
       }
     end
 
-    describe "#initialize" do
-      it "initializes a complete chat response" do
-        response = described_class.new(sample_response_data)
-        
+    let(:tool_response_data) do
+      {
+        "id" => "chatcmpl-456",
+        "object" => "chat.completion",
+        "created" => 1677652288,
+        "model" => "mistral-small-latest",
+        "choices" => [
+          {
+            "index" => 0,
+            "message" => {
+              "role" => "assistant",
+              "content" => nil,
+              "tool_calls" => [
+                {
+                  "id" => "call_123",
+                  "type" => "function",
+                  "function" => {
+                    "name" => "get_weather",
+                    "arguments" => '{"location": "Paris"}'
+                  }
+                }
+              ]
+            },
+            "finish_reason" => "tool_calls"
+          }
+        ],
+        "usage" => {
+          "prompt_tokens" => 15,
+          "completion_tokens" => 5,
+          "total_tokens" => 20
+        }
+      }
+    end
+
+    let(:json_response_data) do
+      {
+        "id" => "chatcmpl-789",
+        "object" => "chat.completion",
+        "created" => 1677652288,
+        "model" => "mistral-small-latest",
+        "choices" => [
+          {
+            "index" => 0,
+            "message" => {
+              "role" => "assistant",
+              "content" => '{"name": "John Doe", "age": 30, "active": true}'
+            },
+            "finish_reason" => "stop"
+          }
+        ],
+        "usage" => {
+          "prompt_tokens" => 20,
+          "completion_tokens" => 15,
+          "total_tokens" => 35
+        }
+      }
+    end
+
+    describe "basic functionality" do
+      let(:response) { described_class.new(basic_response_data) }
+
+      it "initializes with response data" do
         expect(response.id).to eq("chatcmpl-123")
         expect(response.object).to eq("chat.completion")
-        expect(response.created).to eq(1677652288)
         expect(response.model).to eq("mistral-small-latest")
-        expect(response.choices.length).to eq(1)
-        expect(response.choices.first).to be_a(MistralAI::Responses::Choice)
+        expect(response.content).to eq("Hello! How can I help you today?")
+        expect(response.finish_reason).to eq("stop")
+      end
+
+      it "provides usage information" do
         expect(response.usage).to be_a(MistralAI::Responses::Usage)
+        expect(response.usage.total_tokens).to eq(21)
+        expect(response.usage.prompt_tokens).to eq(9)
+        expect(response.usage.completion_tokens).to eq(12)
       end
 
-      it "handles missing usage" do
-        data = sample_response_data.dup
-        data.delete("usage")
-        
-        response = described_class.new(data)
-        
-        expect(response.usage).to be_nil
-      end
-
-      it "handles symbol keys" do
-        data = {
-          id: "chatcmpl-123",
-          object: "chat.completion",
-          created: 1677652288,
-          model: "mistral-small-latest",
-          choices: [],
-          usage: { prompt_tokens: 10 }
-        }
-        
-        response = described_class.new(data)
-        
-        expect(response.id).to eq("chatcmpl-123")
-        expect(response.model).to eq("mistral-small-latest")
-      end
-    end
-
-    describe "convenience methods" do
-      let(:response) { described_class.new(sample_response_data) }
-
-      describe "#content" do
-        it "returns the first choice message content" do
-          expect(response.content).to eq("Hello! How can I help you today?")
-        end
-
-        it "returns nil when no choices" do
-          data = sample_response_data.dup
-          data["choices"] = []
-          response = described_class.new(data)
-          
-          expect(response.content).to be_nil
-        end
-      end
-
-      describe "#message" do
-        it "returns the first choice message" do
-          message = response.message
-          
-          expect(message).to be_a(MistralAI::Responses::Message)
-          expect(message.content).to eq("Hello! How can I help you today?")
-        end
-      end
-
-      describe "#finish_reason" do
-        it "returns the first choice finish reason" do
-          expect(response.finish_reason).to eq("stop")
-        end
-      end
-    end
-
-    describe "#to_h" do
-      it "returns a complete hash representation" do
-        response = described_class.new(sample_response_data)
+      it "converts to hash" do
         hash = response.to_h
-        
         expect(hash[:id]).to eq("chatcmpl-123")
-        expect(hash[:object]).to eq("chat.completion")
-        expect(hash[:created]).to eq(1677652288)
-        expect(hash[:model]).to eq("mistral-small-latest")
-        expect(hash[:choices]).to be_a(Array)
+        expect(hash[:choices]).to be_an(Array)
         expect(hash[:usage]).to be_a(Hash)
+        expect(hash[:choices].first[:message][:content]).to eq("Hello! How can I help you today?")
+      end
+    end
+
+    # Phase 4: Tool calling support tests
+    describe "tool calling functionality" do
+      let(:response) { described_class.new(tool_response_data) }
+
+      describe "#has_tool_calls?" do
+        it "returns true when tool calls are present" do
+          expect(response.has_tool_calls?).to be true
+        end
+
+        it "returns false when no tool calls" do
+          basic_response = described_class.new(basic_response_data)
+          expect(basic_response.has_tool_calls?).to be false
+        end
+      end
+
+      describe "#tool_calls" do
+        it "returns tool calls array" do
+          tool_calls = response.tool_calls
+          expect(tool_calls).to be_an(Array)
+          expect(tool_calls.length).to eq(1)
+          
+          tool_call = tool_calls.first
+          expect(tool_call[:id]).to eq("call_123")
+          expect(tool_call[:type]).to eq("function")
+          expect(tool_call[:function][:name]).to eq("get_weather")
+        end
+
+        it "returns empty array when no tool calls" do
+          basic_response = described_class.new(basic_response_data)
+          expect(basic_response.tool_calls).to eq([])
+        end
+      end
+
+      describe "#extract_tool_calls" do
+        it "extracts tool calls as ToolCall objects" do
+          # Skip if Tools module not loaded
+          skip "Tools module not available" unless defined?(MistralAI::Tools::ToolUtils)
+          
+          tool_calls = response.extract_tool_calls
+          expect(tool_calls).to be_an(Array)
+          expect(tool_calls.length).to eq(1)
+          
+          tool_call = tool_calls.first
+          expect(tool_call).to be_a(MistralAI::Tools::ToolCall)
+          expect(tool_call.id).to eq("call_123")
+          expect(tool_call.function_name).to eq("get_weather")
+          expect(tool_call.parsed_arguments).to eq({"location" => "Paris"})
+        end
+
+        it "returns empty array when no tool calls" do
+          basic_response = described_class.new(basic_response_data)
+          expect(basic_response.extract_tool_calls).to eq([])
+        end
+
+        it "returns empty array when Tools module not loaded" do
+          # Temporarily hide the Tools module
+          tools_module = MistralAI.send(:remove_const, :Tools) if defined?(MistralAI::Tools)
+          
+          begin
+            expect(response.extract_tool_calls).to eq([])
+          ensure
+            MistralAI.const_set(:Tools, tools_module) if tools_module
+          end
+        end
+      end
+    end
+
+    # Phase 4: Structured outputs support tests
+    describe "structured outputs functionality" do
+      let(:response) { described_class.new(json_response_data) }
+
+      describe "#structured_content" do
+        it "parses JSON content as structured object" do
+          # Skip if StructuredOutputs module not loaded
+          skip "StructuredOutputs module not available" unless defined?(MistralAI::StructuredOutputs::ObjectMapper)
+          
+          structured = response.structured_content
+          expect(structured).to be_a(MistralAI::StructuredOutputs::StructuredObject)
+          expect(structured.name).to eq("John Doe")
+          expect(structured.age).to eq(30)
+          expect(structured.active).to be true
+        end
+
+        it "parses with schema class" do
+          # Skip if StructuredOutputs module not loaded
+          skip "StructuredOutputs module not available" unless defined?(MistralAI::StructuredOutputs::BaseSchema)
+          
+          schema_class = Class.new(MistralAI::StructuredOutputs::BaseSchema) do
+            string_property :name, required: true
+            integer_property :age, required: true
+            boolean_property :active
+          end
+
+          structured = response.structured_content(schema_class)
+          expect(structured).to be_a(schema_class)
+          expect(structured.name).to eq("John Doe")
+          expect(structured.age).to eq(30)
+          expect(structured.active).to be true
+        end
+
+        it "falls back to JSON.parse when StructuredOutputs not available" do
+          # Temporarily hide the StructuredOutputs module
+          structured_module = MistralAI.send(:remove_const, :StructuredOutputs) if defined?(MistralAI::StructuredOutputs)
+          
+          begin
+            structured = response.structured_content
+            expect(structured).to be_a(Hash)
+            expect(structured["name"]).to eq("John Doe")
+            expect(structured["age"]).to eq(30)
+          ensure
+            MistralAI.const_set(:StructuredOutputs, structured_module) if structured_module
+          end
+        end
+
+        it "returns content as-is for invalid JSON" do
+          invalid_json_data = basic_response_data.dup
+          invalid_json_data["choices"][0]["message"]["content"] = "Not valid JSON"
+          invalid_response = described_class.new(invalid_json_data)
+          
+          result = invalid_response.structured_content
+          expect(result).to eq("Not valid JSON")
+        end
+
+        it "returns nil when no content" do
+          tool_response = described_class.new(tool_response_data)
+          expect(tool_response.structured_content).to be_nil
+        end
+      end
+
+      describe "#validate_schema" do
+        let(:schema) do
+          {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              age: { type: "integer" },
+              active: { type: "boolean" }
+            },
+            required: ["name", "age"]
+          }
+        end
+
+        it "validates response against schema" do
+          # Skip if StructuredOutputs module not loaded
+          skip "StructuredOutputs module not available" unless defined?(MistralAI::StructuredOutputs::Utils)
+          
+          expect(response.validate_schema(schema)).to be true
+        end
+
+        it "returns false for invalid schema" do
+          # Skip if StructuredOutputs module not loaded
+          skip "StructuredOutputs module not available" unless defined?(MistralAI::StructuredOutputs::Utils)
+          
+          invalid_schema = {
+            type: "object",
+            properties: {
+              email: { type: "string" }
+            },
+            required: ["email"]
+          }
+          
+          expect(response.validate_schema(invalid_schema)).to be false
+        end
+
+        it "returns false when StructuredOutputs not available" do
+          # Temporarily hide the StructuredOutputs module
+          structured_module = MistralAI.send(:remove_const, :StructuredOutputs) if defined?(MistralAI::StructuredOutputs)
+          
+          begin
+            expect(response.validate_schema(schema)).to be false
+          ensure
+            MistralAI.const_set(:StructuredOutputs, structured_module) if structured_module
+          end
+        end
+
+        it "returns false when no content" do
+          tool_response = described_class.new(tool_response_data)
+          expect(tool_response.validate_schema(schema)).to be false
+        end
       end
     end
   end

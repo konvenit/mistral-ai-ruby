@@ -92,15 +92,31 @@ module MistralAI
         when :tools
           # Validate tools format
           validate_tools(value)
-          value
+          # Convert tool objects to hash format
+          if value.is_a?(Array)
+            value.map { |tool| tool.respond_to?(:to_h) ? tool.to_h : tool }
+          else
+            value
+          end
         when :tool_choice
           # Validate tool_choice format
           validate_tool_choice(value)
-          value
+          # Convert ToolChoice object to proper format
+          if value.respond_to?(:to_h)
+            value.to_h
+          else
+            value
+          end
         when :response_format
           # Validate response_format
           validate_response_format(value)
-          value
+          # Clean up schema to only include what API accepts
+          if value.is_a?(Hash) && value[:schema]
+            cleaned_schema = clean_schema_for_api(value[:schema])
+            value.merge(schema: cleaned_schema)
+          else
+            value
+          end
         when :stop
           # Ensure stop is an array
           Array(value)
@@ -109,27 +125,39 @@ module MistralAI
         end
       end
 
-      # Validate tools parameter
+      # Validate tools parameter - enhanced for Phase 4
       def validate_tools(tools)
+        return Tools::ToolUtils.validate_tools(tools) if defined?(Tools::ToolUtils)
+        
+        # Fallback validation for basic compatibility
         unless tools.is_a?(Array)
           raise ArgumentError, "tools must be an array"
         end
 
         tools.each do |tool|
-          unless tool.is_a?(Hash) && tool[:type] && tool[:function]
-            raise ArgumentError, "Invalid tool format: each tool must have 'type' and 'function'"
-          end
+          case tool
+          when Tools::BaseTool
+            # Already validated
+          when Hash
+            unless tool[:type] && tool[:function]
+              raise ArgumentError, "Invalid tool format: each tool must have 'type' and 'function'"
+            end
 
-          function = tool[:function]
-          unless function.is_a?(Hash) && function[:name]
-            raise ArgumentError, "Invalid function format: must have 'name'"
+            function = tool[:function]
+            unless function.is_a?(Hash) && function[:name]
+              raise ArgumentError, "Invalid function format: must have 'name'"
+            end
+          else
+            raise ArgumentError, "Invalid tool type: #{tool.class}"
           end
         end
       end
 
-      # Validate tool_choice parameter
+      # Validate tool_choice parameter - enhanced for Phase 4
       def validate_tool_choice(tool_choice)
         case tool_choice
+        when Tools::ToolChoice
+          # Already validated
         when "auto", "none"
           # Valid string values
         when Hash
@@ -141,7 +169,7 @@ module MistralAI
         end
       end
 
-      # Validate response_format parameter
+      # Validate response_format parameter - enhanced for Phase 4
       def validate_response_format(response_format)
         unless response_format.is_a?(Hash) && response_format[:type]
           raise ArgumentError, "response_format must be a hash with 'type' key"
@@ -150,6 +178,17 @@ module MistralAI
         valid_types = ["text", "json_object"]
         unless valid_types.include?(response_format[:type])
           raise ArgumentError, "response_format type must be one of: #{valid_types.join(', ')}"
+        end
+
+        # Validate schema if present (Phase 4 feature)
+        if response_format[:schema] && defined?(StructuredOutputs::Utils)
+          begin
+            StructuredOutputs::Utils.validate_data({}, response_format[:schema])
+          rescue StructuredOutputs::ValidationError
+            # Schema structure validation passed, actual data validation will happen later
+          rescue => e
+            raise ArgumentError, "Invalid response_format schema: #{e.message}"
+          end
         end
       end
 
@@ -163,6 +202,29 @@ module MistralAI
         else
           raise MistralAI::APIError, "Chat completion failed: #{error.message}"
         end
+      end
+
+      # Clean schema to only include properties that API accepts
+      def clean_schema_for_api(schema)
+        return schema unless schema.is_a?(Hash)
+        
+        # Remove properties that Mistral API doesn't accept in schema
+        allowed_keys = [:type, :properties, :required, :items, :enum, :minimum, :maximum, :pattern]
+        cleaned = {}
+        
+        schema.each do |key, value|
+          key_sym = key.to_sym
+          if allowed_keys.include?(key_sym)
+            if key_sym == :properties && value.is_a?(Hash)
+              # Recursively clean nested properties
+              cleaned[key] = value.transform_values { |prop| clean_schema_for_api(prop) }
+            else
+              cleaned[key] = value
+            end
+          end
+        end
+        
+        cleaned
       end
     end
   end
