@@ -104,6 +104,66 @@ client.chat.stream(
 end
 ```
 
+### Agents API
+
+The Agents API allows you to interact with custom agents created in your Mistral account:
+
+```ruby
+# Agent completion
+response = client.agents.complete(
+  agent_id: "agent_abc123",
+  messages: [
+    { role: "user", content: "Analyze this data" }
+  ]
+)
+
+puts response.content
+
+# Agent streaming
+client.agents.stream(
+  agent_id: "agent_abc123",
+  messages: [
+    { role: "user", content: "Generate a report" }
+  ]
+) do |chunk|
+  print chunk.content if chunk.content
+end
+
+# Agent with options
+response = client.agents.complete(
+  agent_id: "agent_abc123",
+  messages: [
+    { role: "user", content: "Help me with this task" }
+  ],
+  temperature: 0.7,
+  max_tokens: 500
+)
+
+# Agent with tool calling
+response = client.agents.complete(
+  agent_id: "agent_abc123",
+  messages: [
+    { role: "user", content: "What's the weather?" }
+  ],
+  tools: [
+    {
+      type: "function",
+      function: {
+        name: "get_weather",
+        description: "Get weather information",
+        parameters: {
+          type: "object",
+          properties: {
+            location: { type: "string" }
+          }
+        }
+      }
+    }
+  ],
+  tool_choice: "auto"
+)
+```
+
 ## Development Status
 
 This Ruby client is currently in development following a phased approach:
@@ -123,9 +183,12 @@ This Ruby client is currently in development following a phased approach:
 - [x] Streaming support
 - [x] Interactive console chat interface
 
-### 🚧 Phase 3: Agents API Implementation (Planned)
-- [ ] Agent completions
-- [ ] Agent streaming
+### ✅ Phase 3: Agents API Implementation (Complete)
+- [x] Agent completions
+- [x] Agent streaming
+- [x] Agent ID validation
+- [x] Tool calling support
+- [x] Comprehensive testing
 
 ### 🚧 Phase 4: Advanced Features (Planned)
 - [ ] Tool calling support

@@ -21,13 +21,16 @@ module MistralAI
       request(:post, path, body: body, stream: stream, &block)
     end
 
+    def delete(path)
+      request(:delete, path)
+    end
+
     def request(method, path, params: {}, body: nil, stream: false, &block)
       @configuration.validate!
 
       if stream && block
         # For streaming, we'll use a simpler approach
         # Build the request
-        response_body = ""
         response = @connection.send(method) do |req|
           req.url path
           req.params = params if params.any?

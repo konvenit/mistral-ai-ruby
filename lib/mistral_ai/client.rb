@@ -4,10 +4,11 @@ require_relative "configuration"
 require_relative "http_client"
 require_relative "resources/chat"
 require_relative "resources/agents"
+require_relative "beta"
 
 module MistralAI
   class Client
-    attr_reader :configuration, :http_client, :chat, :agents
+    attr_reader :configuration, :http_client, :chat, :agents, :beta
 
     def initialize(api_key: nil, base_url: nil, timeout: nil, logger: nil, max_retries: nil, retry_delay: nil)
       @configuration = Configuration.new
@@ -21,6 +22,7 @@ module MistralAI
       @http_client = HTTPClient.new(@configuration)
       @chat = Resources::Chat.new(self)
       @agents = Resources::Agents.new(self)
+      @beta = Beta.new(self)
     end
   end
 end

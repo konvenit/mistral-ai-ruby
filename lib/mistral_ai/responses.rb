@@ -239,5 +239,43 @@ module MistralAI
         Array(choices_data).map { |choice_data| StreamChoice.new(choice_data) }
       end
     end
+
+    # Agent response for agent management operations
+    class Agent
+    attr_reader :id, :name, :model, :version, :created_at, :updated_at, 
+                :instructions, :tools, :description, :completion_args, :handoffs, :object
+
+    def initialize(data)
+      @id = data["id"] || data[:id]
+      @name = data["name"] || data[:name]
+      @model = data["model"] || data[:model]
+      @version = data["version"] || data[:version]
+      @created_at = data["created_at"] || data[:created_at]
+      @updated_at = data["updated_at"] || data[:updated_at]
+      @instructions = data["instructions"] || data[:instructions]
+      @tools = data["tools"] || data[:tools]
+      @description = data["description"] || data[:description]
+      @completion_args = data["completion_args"] || data[:completion_args]
+      @handoffs = data["handoffs"] || data[:handoffs]
+      @object = data["object"] || data[:object] || "agent"
+    end
+
+    def to_h
+      {
+        id: @id,
+        name: @name,
+        model: @model,
+        version: @version,
+        created_at: @created_at,
+        updated_at: @updated_at,
+        instructions: @instructions,
+        tools: @tools,
+        description: @description,
+        completion_args: @completion_args,
+        handoffs: @handoffs,
+        object: @object
+      }.compact
+    end
   end
-end 
+end
+  end

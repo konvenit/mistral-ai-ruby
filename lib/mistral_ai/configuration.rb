@@ -18,6 +18,10 @@ module MistralAI
                        "API key is required. Set MISTRAL_API_KEY environment variable or configure manually.")
     end
 
+    def api_key?
+      !api_key.nil? && !api_key.empty?
+    end
+
     def validate!
       api_key!
     end
