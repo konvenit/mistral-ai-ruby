@@ -1,0 +1,48 @@
+require:
+  - rubocop-rspec
+
+AllCops:
+  TargetRubyVersion: 2.7
+  NewCops: enable
+  Exclude:
+    - 'vendor/**/*'
+    - 'tmp/**/*'
+    - 'bin/**/*'
+
+# Prefer single quotes
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+# Allow long lines in specs
+Layout/LineLength:
+  Max: 120
+  Exclude:
+    - 'spec/**/*'
+
+# Allow class length in specs
+Metrics/ClassLength:
+  Exclude:
+    - 'spec/**/*'
+
+# Allow method length in specs
+Metrics/MethodLength:
+  Exclude:
+    - 'spec/**/*'
+
+# Allow block length in specs
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*'
+    - '*.gemspec'
+
+# Disable documentation requirement
+Style/Documentation:
+  Enabled: false
+
+# Allow empty lines around class body
+Layout/EmptyLinesAroundClassBody:
+  Enabled: false
+
+# Allow empty lines around module body
+Layout/EmptyLinesAroundModuleBody:
+  Enabled: false 
