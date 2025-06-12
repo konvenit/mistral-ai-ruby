@@ -8,11 +8,12 @@ require "io/console"
 
 # Console Chat Interface for Mistral AI Ruby Client
 class MistralChat
-  def initialize(api_key:, model: "mistral-small-latest")
+  def initialize(api_key:, model: "mistral-small-latest", mcp_mode: false)
     @api_key = api_key
     @model = model
     @messages = []
     @client = nil
+    @mcp_mode = mcp_mode
     setup_client
   end
 
@@ -41,6 +42,7 @@ class MistralChat
     puts "🤖 Mistral AI Chat Interface"
     puts "=" * 40
     puts "Model: #{@model}"
+    puts "Mode: #{@mcp_mode ? 'MCP' : 'Standard'}"
     puts "Type 'exit', 'quit', or press Ctrl+C to end the conversation"
     puts "Type 'clear' to clear conversation history"
     puts "Type 'help' for available commands"
@@ -85,7 +87,11 @@ class MistralChat
       end
 
       # Add user message to conversation
-      @messages << { role: "user", content: user_input }
+      if @mcp_mode
+        @messages << { role: "user", content: user_input, type: "mcp" }
+      else
+        @messages << { role: "user", content: user_input }
+      end
 
       # Get AI response with streaming
       print "🤖 Assistant: "
@@ -98,21 +104,41 @@ class MistralChat
     response_content = ""
     
     begin
-      @client.chat.stream(
-        model: @model,
-        messages: @messages,
-        temperature: 0.7,
-        max_tokens: 1000
-      ) do |chunk|
-        if chunk.content
-          print chunk.content
-          $stdout.flush
-          response_content += chunk.content
+      if @mcp_mode
+        @client.chat.stream(
+          model: @model,
+          messages: @messages,
+          temperature: 0.7,
+          max_tokens: 1000,
+          mcp: true
+        ) do |chunk|
+          if chunk.content
+            print chunk.content
+            $stdout.flush
+            response_content += chunk.content
+          end
+        end
+      else
+        @client.chat.stream(
+          model: @model,
+          messages: @messages,
+          temperature: 0.7,
+          max_tokens: 1000
+        ) do |chunk|
+          if chunk.content
+            print chunk.content
+            $stdout.flush
+            response_content += chunk.content
+          end
         end
       end
 
       # Add assistant response to conversation history
-      @messages << { role: "assistant", content: response_content }
+      if @mcp_mode
+        @messages << { role: "assistant", content: response_content, type: "mcp" }
+      else
+        @messages << { role: "assistant", content: response_content }
+      end
 
     rescue MistralAI::RateLimitError => e
       puts "\n⚠️  Rate limit exceeded. Please wait a moment and try again."
@@ -147,6 +173,9 @@ class MistralChat
     puts "  - Your conversation history is maintained across messages"
     puts "  - Responses are streamed in real-time"
     puts "  - Press Ctrl+C to exit at any time"
+    if @mcp_mode
+      puts "  - You are in MCP mode - messages will be processed as MCP commands"
+    end
     puts
   end
 end
@@ -170,6 +199,10 @@ def parse_arguments
       options[:model] = model
     end
 
+    opts.on("--mcp", "Enable MCP mode") do
+      options[:mcp_mode] = true
+    end
+
     opts.on("-h", "--help", "Show this help message") do
       puts opts
       exit
@@ -179,6 +212,7 @@ def parse_arguments
     opts.separator "Examples:"
     opts.separator "  #{$0} --api-key your-api-key-here"
     opts.separator "  #{$0} -k your-api-key -m mistral-large-latest"
+    opts.separator "  #{$0} -k your-api-key --mcp"
     opts.separator ""
     opts.separator "Environment Variables:"
     opts.separator "  MISTRAL_API_KEY - API key (if not provided via --api-key)"
@@ -196,6 +230,7 @@ def parse_arguments
   end
 
   options[:model] ||= "mistral-small-latest"
+  options[:mcp_mode] ||= false
   options
 end
 
@@ -205,7 +240,8 @@ if __FILE__ == $0
     options = parse_arguments
     chat = MistralChat.new(
       api_key: options[:api_key],
-      model: options[:model]
+      model: options[:model],
+      mcp_mode: options[:mcp_mode]
     )
     chat.start
   rescue => e
