@@ -17,6 +17,7 @@ GEM
       bigdecimal
       rexml
     diff-lcs (1.6.2)
+    dotenv (3.1.8)
     faraday (2.13.1)
       faraday-net_http (>= 2.0, < 3.5)
       json
@@ -105,6 +106,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  dotenv (~> 3.1)
   mistral_ai!
   oj (~> 3.13)
   rake (~> 13.0)

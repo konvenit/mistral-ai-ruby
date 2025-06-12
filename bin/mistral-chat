@@ -1,0 +1,219 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require_relative "../lib/mistral_ai"
+require "optparse"
+require "io/console"
+
+# Console Chat Interface for Mistral AI Ruby Client
+class MistralChat
+  def initialize(api_key:, model: "mistral-small-latest")
+    @api_key = api_key
+    @model = model
+    @messages = []
+    @client = nil
+    setup_client
+  end
+
+  def start
+    print_welcome
+    setup_signal_handling
+    chat_loop
+  rescue Interrupt
+    puts "\n\n👋 Goodbye!"
+    exit(0)
+  end
+
+  private
+
+  def setup_client
+    MistralAI.configure do |config|
+      config.api_key = @api_key
+    end
+    @client = MistralAI.client
+  rescue => e
+    puts "❌ Error setting up client: #{e.message}"
+    exit(1)
+  end
+
+  def print_welcome
+    puts "🤖 Mistral AI Chat Interface"
+    puts "=" * 40
+    puts "Model: #{@model}"
+    puts "Type 'exit', 'quit', or press Ctrl+C to end the conversation"
+    puts "Type 'clear' to clear conversation history"
+    puts "Type 'help' for available commands"
+    puts "=" * 40
+    puts
+  end
+
+  def setup_signal_handling
+    Signal.trap("INT") do
+      puts "\n\n👋 Goodbye!"
+      exit(0)
+    end
+  end
+
+  def chat_loop
+    loop do
+      print "💬 You: "
+      user_input = gets&.chomp
+
+      # Handle nil input (EOF)
+      if user_input.nil?
+        puts "\n👋 Goodbye!"
+        break
+      end
+
+      # Handle commands
+      case user_input.downcase.strip
+      when "exit", "quit"
+        puts "👋 Goodbye!"
+        break
+      when "clear"
+        @messages.clear
+        puts "🧹 Conversation history cleared."
+        puts
+        next
+      when "help"
+        print_help
+        next
+      when ""
+        puts "Please enter a message or command."
+        next
+      end
+
+      # Add user message to conversation
+      @messages << { role: "user", content: user_input }
+
+      # Get AI response with streaming
+      print "🤖 Assistant: "
+      get_streaming_response
+      puts "\n"
+    end
+  end
+
+  def get_streaming_response
+    response_content = ""
+    
+    begin
+      @client.chat.stream(
+        model: @model,
+        messages: @messages,
+        temperature: 0.7,
+        max_tokens: 1000
+      ) do |chunk|
+        if chunk.content
+          print chunk.content
+          $stdout.flush
+          response_content += chunk.content
+        end
+      end
+
+      # Add assistant response to conversation history
+      @messages << { role: "assistant", content: response_content }
+
+    rescue MistralAI::RateLimitError => e
+      puts "\n⚠️  Rate limit exceeded. Please wait a moment and try again."
+      puts "Error: #{e.message}"
+      # Remove the user message since we couldn't process it
+      @messages.pop
+    rescue MistralAI::AuthenticationError => e
+      puts "\n❌ Authentication failed. Please check your API key."
+      puts "Error: #{e.message}"
+      exit(1)
+    rescue MistralAI::APIError => e
+      puts "\n❌ API error occurred:"
+      puts "Error: #{e.message}"
+      # Remove the user message since we couldn't process it
+      @messages.pop
+    rescue => e
+      puts "\n❌ Unexpected error occurred:"
+      puts "Error: #{e.message}"
+      # Remove the user message since we couldn't process it
+      @messages.pop
+    end
+  end
+
+  def print_help
+    puts
+    puts "📖 Available Commands:"
+    puts "  exit, quit  - End the conversation"
+    puts "  clear       - Clear conversation history"
+    puts "  help        - Show this help message"
+    puts
+    puts "💡 Tips:"
+    puts "  - Your conversation history is maintained across messages"
+    puts "  - Responses are streamed in real-time"
+    puts "  - Press Ctrl+C to exit at any time"
+    puts
+  end
+end
+
+# Command line argument parsing
+def parse_arguments
+  options = {}
+  
+  OptionParser.new do |opts|
+    opts.banner = "Usage: #{$0} [options]"
+    opts.separator ""
+    opts.separator "Mistral AI Console Chat Interface"
+    opts.separator ""
+    opts.separator "Options:"
+
+    opts.on("-k", "--api-key KEY", "Mistral AI API key (required)") do |key|
+      options[:api_key] = key
+    end
+
+    opts.on("-m", "--model MODEL", "Model to use (default: mistral-small-latest)") do |model|
+      options[:model] = model
+    end
+
+    opts.on("-h", "--help", "Show this help message") do
+      puts opts
+      exit
+    end
+
+    opts.separator ""
+    opts.separator "Examples:"
+    opts.separator "  #{$0} --api-key your-api-key-here"
+    opts.separator "  #{$0} -k your-api-key -m mistral-large-latest"
+    opts.separator ""
+    opts.separator "Environment Variables:"
+    opts.separator "  MISTRAL_API_KEY - API key (if not provided via --api-key)"
+  end.parse!
+
+  # Check for API key from environment if not provided
+  options[:api_key] ||= ENV["MISTRAL_API_KEY"]
+
+  unless options[:api_key]
+    puts "❌ Error: API key is required"
+    puts "Please provide it via --api-key parameter or MISTRAL_API_KEY environment variable"
+    puts
+    puts "Usage: #{$0} --api-key your-api-key-here"
+    exit(1)
+  end
+
+  options[:model] ||= "mistral-small-latest"
+  options
+end
+
+# Main execution
+if __FILE__ == $0
+  begin
+    options = parse_arguments
+    chat = MistralChat.new(
+      api_key: options[:api_key],
+      model: options[:model]
+    )
+    chat.start
+  rescue => e
+    puts "❌ Fatal error: #{e.message}"
+    if $DEBUG
+      puts "\nBacktrace:"
+      puts e.backtrace
+    end
+    exit(1)
+  end
+end 

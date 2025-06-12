@@ -67,13 +67,15 @@ end
 # Use the global client
 client = MistralAI.client
 
-# Chat completion (Phase 2 - Coming Soon)
-# response = client.chat.complete(
-#   model: "mistral-small-latest",
-#   messages: [
-#     { role: "user", content: "What is the best French cheese?" }
-#   ]
-# )
+# Chat completion
+response = client.chat.complete(
+  model: "mistral-small-latest",
+  messages: [
+    { role: "user", content: "What is the best French cheese?" }
+  ]
+)
+
+puts response.content
 ```
 
 ### Client Instance
@@ -83,20 +85,30 @@ require 'mistral_ai'
 
 client = MistralAI::Client.new(api_key: "your-api-key")
 
-# Chat completion (Phase 2 - Coming Soon)
-# response = client.chat.complete(
-#   model: "mistral-small-latest", 
-#   messages: [
-#     { role: "user", content: "Hello!" }
-#   ]
-# )
+# Chat completion
+response = client.chat.complete(
+  model: "mistral-small-latest", 
+  messages: [
+    { role: "user", content: "Hello!" }
+  ]
+)
+
+# Streaming chat
+client.chat.stream(
+  model: "mistral-small-latest",
+  messages: [
+    { role: "user", content: "Tell me a story" }
+  ]
+) do |chunk|
+  print chunk.content if chunk.content
+end
 ```
 
 ## Development Status
 
 This Ruby client is currently in development following a phased approach:
 
-### ✅ Phase 1: Foundation & Core Infrastructure (Current)
+### ✅ Phase 1: Foundation & Core Infrastructure (Complete)
 - [x] Project setup and gem structure
 - [x] Configuration management
 - [x] HTTP client with Faraday
@@ -104,11 +116,12 @@ This Ruby client is currently in development following a phased approach:
 - [x] Authentication
 - [x] Basic testing infrastructure
 
-### 🚧 Phase 2: Chat API Implementation (Coming Soon)
-- [ ] Synchronous chat completion
-- [ ] Message types and validation  
-- [ ] Response objects
-- [ ] Streaming support
+### ✅ Phase 2: Chat API Implementation (Complete)
+- [x] Synchronous chat completion
+- [x] Message types and validation  
+- [x] Response objects
+- [x] Streaming support
+- [x] Interactive console chat interface
 
 ### 🚧 Phase 3: Agents API Implementation (Planned)
 - [ ] Agent completions
@@ -117,6 +130,42 @@ This Ruby client is currently in development following a phased approach:
 ### 🚧 Phase 4: Advanced Features (Planned)
 - [ ] Tool calling support
 - [ ] Structured outputs
+
+## Console Scripts
+
+The gem includes console scripts for interactive usage:
+
+### Interactive Chat Interface
+
+Start an interactive chat session with streaming responses:
+
+```bash
+# Using API key parameter
+./bin/mistral-chat --api-key your-api-key-here
+
+# Using environment variable
+export MISTRAL_API_KEY="your-api-key"
+./bin/mistral-chat
+
+# Specify a different model
+./bin/mistral-chat --api-key your-key --model mistral-large-latest
+```
+
+**Chat Commands:**
+- `help` - Show available commands
+- `clear` - Clear conversation history
+- `exit` or `quit` - End the conversation
+- `Ctrl+C` - Exit at any time
+
+### Development Console
+
+For development and debugging:
+
+```bash
+./bin/console
+```
+
+This starts an IRB session with the MistralAI module pre-loaded.
 
 ## Development
 

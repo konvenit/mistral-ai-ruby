@@ -24,19 +24,31 @@ module MistralAI
     def request(method, path, params: {}, body: nil, stream: false, &block)
       @configuration.validate!
 
-      response = @connection.send(method) do |req|
-        req.url path
-        req.params = params if params.any?
-        req.body = JSON.generate(body) if body
-        req.headers["Accept"] = stream ? "text/event-stream" : "application/json"
-        req.options.stream = stream
-        req.options.on_data = block if stream && block
-      end
-
-      if stream
-        # For streaming, the response is handled by the callback
+      if stream && block
+        # For streaming, we'll use a simpler approach
+        # Build the request
+        response_body = ""
+        response = @connection.send(method) do |req|
+          req.url path
+          req.params = params if params.any?
+          req.body = JSON.generate(body) if body
+          req.headers["Accept"] = "text/event-stream"
+        end
+        
+        # Parse the streaming response manually
+        response.body.to_s.each_line do |line|
+          block.call(line) if block
+        end
+        
         response
       else
+        # Handle regular request
+        response = @connection.send(method) do |req|
+          req.url path
+          req.params = params if params.any?
+          req.body = JSON.generate(body) if body
+          req.headers["Accept"] = "application/json"
+        end
         handle_response(response)
       end
     rescue Faraday::TimeoutError => e

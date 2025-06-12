@@ -7,6 +7,11 @@ require_relative "mistral_ai/http_client"
 require_relative "mistral_ai/base_resource"
 require_relative "mistral_ai/client"
 
+# Phase 2: Chat API components
+require_relative "mistral_ai/messages"
+require_relative "mistral_ai/responses"
+require_relative "mistral_ai/streaming"
+
 module MistralAI
   class << self
     # Global configuration
