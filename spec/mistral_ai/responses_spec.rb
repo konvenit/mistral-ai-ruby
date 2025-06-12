@@ -188,6 +188,7 @@ RSpec.describe MistralAI::Responses do
         expect(delta.tool_calls).to eq([
           {
             id: "call_123",
+            type: "function",
             function: { name: "get_weather" }
           }
         ])

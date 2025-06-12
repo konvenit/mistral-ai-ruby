@@ -190,9 +190,153 @@ This Ruby client is currently in development following a phased approach:
 - [x] Tool calling support
 - [x] Comprehensive testing
 
-### 🚧 Phase 4: Advanced Features (Planned)
-- [ ] Tool calling support
-- [ ] Structured outputs
+### ✅ Phase 4: Advanced Features (Complete)
+- [x] Tool calling support
+- [x] Structured outputs
+- [x] Model Context Protocol (MCP) client support
+
+## Model Context Protocol (MCP) Support
+
+The Ruby client now includes comprehensive support for the Model Context Protocol (MCP), allowing integration with external tools and services. MCP enables AI assistants to discover and invoke external tools via standardized protocols.
+
+### MCP Features
+
+- **STDIO Transport**: Connect to local MCP servers via standard input/output
+- **SSE Transport**: Connect to remote MCP servers via Server-Sent Events
+- **OAuth2 Authentication**: Full OAuth2 support for secure remote server access
+- **Tool Integration**: Seamlessly integrate MCP tools with Mistral AI chat completions
+- **Prompt Management**: Access and execute system prompts from MCP servers
+
+### STDIO MCP Client (Local Servers)
+
+```ruby
+require 'mistral_ai'
+
+# Configure MCP server parameters
+server_params = MistralAI::MCP::StdioServerParameters.new(
+  command: "python",
+  args: ["path/to/your/mcp_server.py"],
+  env: { "DEBUG" => "true" }
+)
+
+# Create MCP client
+mcp_client = MistralAI::MCP::MCPClientSTDIO.new(
+  stdio_params: server_params,
+  name: "filesystem_tools"
+)
+
+# Initialize session
+mcp_client.initialize_session
+
+# Get available tools
+tools = mcp_client.get_tools
+puts "Available tools: #{tools.map { |t| t.dig('function', 'name') }.join(', ')}"
+
+# Execute a tool
+result = mcp_client.execute_tool("list_files", { "path" => "." })
+puts "Tool result: #{result}"
+
+# Use tools in chat completion
+client = MistralAI::Client.new(api_key: "your-api-key")
+
+response = client.chat.complete(
+  model: "mistral-medium-latest",
+  messages: [
+    { role: "user", content: "What files are in my current directory?" }
+  ],
+  tools: tools,
+  tool_choice: "auto"
+)
+
+# Clean up
+mcp_client.close
+```
+
+### SSE MCP Client (Remote Servers)
+
+```ruby
+require 'mistral_ai'
+
+# Configure SSE server parameters
+sse_params = MistralAI::MCP::SSEServerParams.new(
+  url: "https://mcp.example.com/sse",
+  headers: { "X-API-Key" => "your-api-key" },
+  timeout: 10,
+  sse_read_timeout: 300
+)
+
+# Create SSE MCP client
+mcp_client = MistralAI::MCP::MCPClientSSE.new(
+  sse_params: sse_params,
+  name: "remote_server"
+)
+
+# Check if authentication is required
+if mcp_client.requires_auth?
+  # Set up OAuth2 authentication
+  oauth_params = MistralAI::MCP.build_oauth_params(
+    mcp_client.base_url,
+    redirect_url: "http://localhost:8080/callback"
+  )
+  mcp_client.set_oauth_params(oauth_params)
+  
+  # Get authorization URL
+  auth_url, state = mcp_client.get_auth_url_and_state(redirect_url)
+  puts "Please visit: #{auth_url}"
+  
+  # After user authorization, exchange code for token
+  token = mcp_client.get_token_from_auth_response(
+    auth_response, redirect_url, state
+  )
+  mcp_client.set_auth_token(token)
+end
+
+# Initialize and use the client
+mcp_client.initialize_session
+tools = mcp_client.get_tools
+# ... use tools as shown above
+```
+
+### System Prompts
+
+```ruby
+# List available system prompts
+prompts = mcp_client.list_system_prompts
+puts "Available prompts: #{prompts}"
+
+# Get a specific system prompt
+prompt_result = mcp_client.get_system_prompt("code_review", {
+  "language" => "ruby",
+  "style" => "detailed"
+})
+
+puts "Prompt description: #{prompt_result.description}"
+prompt_result.messages.each do |message|
+  puts "#{message['role']}: #{message['content']['text']}"
+end
+```
+
+### Error Handling
+
+```ruby
+begin
+  mcp_client.initialize_session
+  tools = mcp_client.get_tools
+rescue MistralAI::MCP::MCPAuthException => e
+  puts "Authentication error: #{e.message}"
+rescue MistralAI::MCP::MCPConnectionException => e
+  puts "Connection error: #{e.message}"
+rescue MistralAI::MCP::MCPException => e
+  puts "MCP error: #{e.message}"
+end
+```
+
+### Examples
+
+See the `examples/` directory for complete working examples:
+
+- `examples/mcp_stdio_example.rb` - Local MCP server integration
+- `examples/mcp_sse_example.rb` - Remote server with OAuth authentication
 
 ## Console Scripts
 

@@ -35,6 +35,9 @@ Gem::Specification.new do |spec|
   spec.add_dependency "faraday", ">= 1.0", "< 3.0"
   spec.add_dependency "faraday-retry", "~> 2.0"
 
+  # MCP (Model Context Protocol) support - optional dependency
+  spec.add_dependency "mcp", "~> 0.1", ">= 0.1.0"
+
   # Development dependencies
   spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rspec", "~> 3.12"
@@ -46,5 +49,9 @@ Gem::Specification.new do |spec|
 
   # For better JSON performance (optional)
   spec.add_development_dependency "oj", "~> 3.13"
+  
+  # For SSE MCP example
+  spec.add_development_dependency "webrick", "~> 1.7"
+  
   spec.metadata["rubygems_mfa_required"] = "true"
 end

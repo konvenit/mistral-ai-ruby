@@ -367,16 +367,20 @@ module MistralAI
       private
 
       def self.validate_tool_hash(tool, context)
-        unless tool[:type] && tool[:function]
+        # Support both string and symbol keys for flexibility
+        type_key = tool["type"] || tool[:type]
+        function_key = tool["function"] || tool[:function]
+        
+        unless type_key && function_key
           raise ArgumentError, "Tool#{context} must have 'type' and 'function' keys"
         end
 
-        unless tool[:type] == "function"
+        unless type_key == "function"
           raise ArgumentError, "Tool#{context} type must be 'function'"
         end
 
-        function = tool[:function]
-        unless function.is_a?(Hash) && function[:name]
+        function = function_key
+        unless function.is_a?(Hash) && (function["name"] || function[:name])
           raise ArgumentError, "Tool#{context} function must have 'name'"
         end
       end

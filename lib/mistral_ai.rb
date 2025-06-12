@@ -16,6 +16,9 @@ require_relative "mistral_ai/streaming"
 require_relative "mistral_ai/tools"
 require_relative "mistral_ai/structured_outputs"
 
+# MCP (Model Context Protocol) Support
+require_relative "mistral_ai/mcp"
+
 module MistralAI
   class << self
     # Global configuration

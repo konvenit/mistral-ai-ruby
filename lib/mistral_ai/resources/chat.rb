@@ -134,17 +134,21 @@ module MistralAI
           raise ArgumentError, "tools must be an array"
         end
 
-        tools.each do |tool|
+        tools.each_with_index do |tool, index|
           case tool
           when Tools::BaseTool
             # Already validated
           when Hash
-            unless tool[:type] && tool[:function]
-              raise ArgumentError, "Invalid tool format: each tool must have 'type' and 'function'"
+            # Support both string and symbol keys for flexibility
+            type_key = tool["type"] || tool[:type]
+            function_key = tool["function"] || tool[:function]
+            
+            unless type_key && function_key
+              raise ArgumentError, "Tool at index #{index} must have 'type' and 'function' keys"
             end
 
-            function = tool[:function]
-            unless function.is_a?(Hash) && function[:name]
+            function = function_key
+            unless function.is_a?(Hash) && (function["name"] || function[:name])
               raise ArgumentError, "Invalid function format: must have 'name'"
             end
           else
