@@ -1,23 +1,22 @@
 # frozen_string_literal: true
 
-require_relative "lib/mistral_ai/version"
+require_relative "lib/mistral-ai/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "mistral_ai"
+  spec.name = "mistral-ai-ruby"
   spec.version = MistralAI::VERSION
   spec.authors = ["Mistral AI"]
   spec.email = ["support@mistral.ai"]
 
   spec.summary = "Ruby client for the Mistral AI API"
   spec.description = "A Ruby client library for accessing the Mistral AI API, including chat completions, agents, and streaming support."
-  spec.homepage = "https://github.com/mistralai/client-ruby"
+  spec.homepage = "https://github.com/konvenit/mistral-ai-ruby"
   spec.license = "Apache-2.0"
   spec.required_ruby_version = ">= 2.7.0"
 
   spec.metadata["allowed_push_host"] = "https://rubygems.org"
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = "https://github.com/mistralai/client-ruby"
-  spec.metadata["changelog_uri"] = "https://github.com/mistralai/client-ruby/blob/main/CHANGELOG.md"
+  spec.metadata["source_code_uri"] = "https://github.com/konvenit/mistral-ai-ruby"
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.

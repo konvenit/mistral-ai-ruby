@@ -5,7 +5,7 @@ require "spec_helper"
 RSpec.describe MistralAI::MCP do
   describe "module loading" do
     it "loads all MCP modules without error" do
-      expect { require "mistral_ai/mcp" }.not_to raise_error
+      expect { require "mistral-ai/mcp" }.not_to raise_error
     end
 
     it "defines MCP module constants" do

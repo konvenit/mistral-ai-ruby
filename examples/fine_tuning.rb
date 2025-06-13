@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require_relative '../lib/mistral_ai'
+require_relative '../lib/mistral-ai'
 
 # Initialize the client
 client = MistralAI::Client.new(api_key: ENV['MISTRAL_API_KEY'])

@@ -1,23 +1,23 @@
 # frozen_string_literal: true
 
-require_relative "mistral_ai/version"
-require_relative "mistral_ai/configuration"
-require_relative "mistral_ai/errors"
-require_relative "mistral_ai/http_client"
-require_relative "mistral_ai/base_resource"
-require_relative "mistral_ai/client"
+require_relative "mistral-ai/version"
+require_relative "mistral-ai/configuration"
+require_relative "mistral-ai/errors"
+require_relative "mistral-ai/http_client"
+require_relative "mistral-ai/base_resource"
+require_relative "mistral-ai/client"
 
 # Phase 2: Chat API components
-require_relative "mistral_ai/messages"
-require_relative "mistral_ai/responses"
-require_relative "mistral_ai/streaming"
+require_relative "mistral-ai/messages"
+require_relative "mistral-ai/responses"
+require_relative "mistral-ai/streaming"
 
 # Phase 4: Advanced Features
-require_relative "mistral_ai/tools"
-require_relative "mistral_ai/structured_outputs"
+require_relative "mistral-ai/tools"
+require_relative "mistral-ai/structured_outputs"
 
 # MCP (Model Context Protocol) Support
-require_relative "mistral_ai/mcp"
+require_relative "mistral-ai/mcp"
 
 module MistralAI
   class << self

@@ -3,7 +3,7 @@
 require "bundler/setup"
 require "vcr"
 require "webmock/rspec"
-require "mistral_ai"
+require "mistral-ai"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

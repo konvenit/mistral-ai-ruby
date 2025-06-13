@@ -3,7 +3,7 @@
 
 require "bundler/setup"
 require "dotenv/load"
-require "mistral_ai"
+require "mistral-ai"
 require "webrick"
 
 # Example usage of MCP SSE client with OAuth authentication

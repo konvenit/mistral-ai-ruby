@@ -3,7 +3,7 @@
 
 require "bundler/setup"
 require "dotenv/load"
-require "mistral_ai"
+require "mistral-ai"
 
 # Example usage of MCP STDIO client with Mistral AI
 def main

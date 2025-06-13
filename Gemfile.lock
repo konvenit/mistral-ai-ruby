@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    mistral_ai (0.1.0)
+    mistral-ai-ruby (0.1.0)
       faraday (>= 1.0, < 3.0)
       faraday-retry (~> 2.0)
       mcp (~> 0.1, >= 0.1.0)
@@ -120,7 +120,7 @@ PLATFORMS
 
 DEPENDENCIES
   dotenv (~> 3.1)
-  mistral_ai!
+  mistral-ai-ruby!
   oj (~> 3.13)
   prawn (~> 2.0)
   rake (~> 13.0)

@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require_relative "../lib/mistral_ai"
+require_relative "../lib/mistral-ai"
 
 # Demo: Programmatic console chat usage
 # This shows how to use the console chat functionality programmatically

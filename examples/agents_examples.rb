@@ -4,7 +4,7 @@
 # Add the lib directory to the load path for development
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 
-require "mistral_ai"
+require "mistral-ai"
 
 puts "=== Mistral AI Ruby Client - Agents API Examples ==="
 puts

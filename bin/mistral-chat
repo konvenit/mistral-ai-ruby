@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "bundler/setup"
-require_relative "../lib/mistral_ai"
+require_relative "../lib/mistral-ai"
 require "optparse"
 require "io/console"
 

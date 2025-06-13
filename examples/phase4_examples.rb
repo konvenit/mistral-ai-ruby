@@ -8,7 +8,7 @@ $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 require "dotenv"
 Dotenv.load
 
-require "mistral_ai"
+require "mistral-ai"
 
 # Phase 4 Advanced Features Examples
 # This demonstrates tool calling and structured outputs

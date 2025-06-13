@@ -7,7 +7,7 @@ A Ruby client library for accessing the Mistral AI API, including chat completio
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'mistral_ai'
+gem 'mistral-ai-ruby'
 ```
 
 And then execute:
@@ -16,7 +16,7 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install mistral_ai
+    $ gem install mistral-ai-ruby
 
 ## Configuration
 
@@ -57,7 +57,7 @@ client = MistralAI::Client.new(
 ### Quick Start with Global Configuration
 
 ```ruby
-require 'mistral_ai'
+require 'mistral-ai'
 
 # Configure globally
 MistralAI.configure do |config|
@@ -81,7 +81,7 @@ puts response.content
 ### Client Instance
 
 ```ruby
-require 'mistral_ai'
+require 'mistral-ai'
 
 client = MistralAI::Client.new(api_key: "your-api-key")
 
@@ -164,37 +164,6 @@ response = client.agents.complete(
 )
 ```
 
-## Development Status
-
-This Ruby client is currently in development following a phased approach:
-
-### ✅ Phase 1: Foundation & Core Infrastructure (Complete)
-- [x] Project setup and gem structure
-- [x] Configuration management
-- [x] HTTP client with Faraday
-- [x] Error handling and custom exceptions
-- [x] Authentication
-- [x] Basic testing infrastructure
-
-### ✅ Phase 2: Chat API Implementation (Complete)
-- [x] Synchronous chat completion
-- [x] Message types and validation  
-- [x] Response objects
-- [x] Streaming support
-- [x] Interactive console chat interface
-
-### ✅ Phase 3: Agents API Implementation (Complete)
-- [x] Agent completions
-- [x] Agent streaming
-- [x] Agent ID validation
-- [x] Tool calling support
-- [x] Comprehensive testing
-
-### ✅ Phase 4: Advanced Features (Complete)
-- [x] Tool calling support
-- [x] Structured outputs
-- [x] Model Context Protocol (MCP) client support
-
 ## Model Context Protocol (MCP) Support
 
 The Ruby client now includes comprehensive support for the Model Context Protocol (MCP), allowing integration with external tools and services. MCP enables AI assistants to discover and invoke external tools via standardized protocols.
@@ -210,7 +179,7 @@ The Ruby client now includes comprehensive support for the Model Context Protoco
 ### STDIO MCP Client (Local Servers)
 
 ```ruby
-require 'mistral_ai'
+require 'mistral-ai'
 
 # Configure MCP server parameters
 server_params = MistralAI::MCP::StdioServerParameters.new(
@@ -255,7 +224,7 @@ mcp_client.close
 ### SSE MCP Client (Remote Servers)
 
 ```ruby
-require 'mistral_ai'
+require 'mistral-ai'
 
 # Configure SSE server parameters
 sse_params = MistralAI::MCP::SSEServerParams.new(
@@ -337,6 +306,9 @@ See the `examples/` directory for complete working examples:
 
 - `examples/mcp_stdio_example.rb` - Local MCP server integration
 - `examples/mcp_sse_example.rb` - Remote server with OAuth authentication
+- `examples/embeddings.rb` - Embeddings API example
+- `examples/fine_tuning.rb` - Fine-tuning API example
+
 
 ## Console Scripts
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require_relative "../lib/mistral_ai"
+require_relative "../lib/mistral-ai"
 
 # Phase 2 Chat API Examples
 # These examples demonstrate the chat completion and streaming functionality

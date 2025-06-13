@@ -1,0 +1,66 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.1.0)'
+        required: true
+        type: string
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+        bundler-cache: true
+
+    - name: Install dependencies
+      run: |
+        bundle install
+
+    - name: Update version
+      run: |
+        sed -i "s/VERSION = \".*\"/VERSION = \"${{ github.event.inputs.version }}\"/" lib/mistral-ai/version.rb
+
+    - name: Update CHANGELOG.md
+      run: |
+        today=$(date +%Y-%m-%d)
+        version=${{ github.event.inputs.version }}
+        echo "## [$version] - $today" >> CHANGELOG.md.new
+        echo "" >> CHANGELOG.md.new
+        echo "### Added" >> CHANGELOG.md.new
+        echo "- Release $version" >> CHANGELOG.md.new
+        echo "" >> CHANGELOG.md.new
+        cat CHANGELOG.md >> CHANGELOG.md.new
+        mv CHANGELOG.md.new CHANGELOG.md
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "Prepare release ${{ github.event.inputs.version }}"
+        title: "Release ${{ github.event.inputs.version }}"
+        body: |
+          This PR prepares the release of version ${{ github.event.inputs.version }}.
+          
+          Changes:
+          - Updated version in `lib/mistral-ai/version.rb`
+          - Updated CHANGELOG.md
+          
+          After merging this PR, you can create a new release by:
+          1. Creating a new tag: `git tag -a v${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"`
+          2. Pushing the tag: `git push origin v${{ github.event.inputs.version }}`
+        branch: release-${{ github.event.inputs.version }}
+        base: main 
