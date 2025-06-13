@@ -4,252 +4,222 @@
 require "bundler/setup"
 require_relative "../lib/mistral-ai"
 require "optparse"
-require "io/console"
 
-# Console Chat Interface for Mistral AI Ruby Client
-class MistralChat
-  def initialize(api_key:, model: "mistral-small-latest", mcp_mode: false)
-    @api_key = api_key
-    @model = model
-    @messages = []
-    @client = nil
-    @mcp_mode = mcp_mode
-    setup_client
+# Enhanced Mistral AI Chat Interface with MCP and Configuration Support
+class MistralChatCLI
+  def initialize
+    @options = {}
+    @config_manager = MistralAI::ChatConfig.new
   end
 
-  def start
-    print_welcome
-    setup_signal_handling
-    chat_loop
+  def run
+    parse_arguments
+    validate_options
+    setup_configuration
+    start_chat_interface
+  rescue MistralAI::ChatConfig::ConfigurationError => e
+    puts "❌ Configuration Error: #{e.message}"
+    exit(1)
   rescue Interrupt
-    puts "\n\n👋 Goodbye!"
+    puts "\n👋 Goodbye!"
     exit(0)
-  end
-
-  private
-
-  def setup_client
-    MistralAI.configure do |config|
-      config.api_key = @api_key
-    end
-    @client = MistralAI.client
-  rescue => e
-    puts "❌ Error setting up client: #{e.message}"
-    exit(1)
-  end
-
-  def print_welcome
-    puts "🤖 Mistral AI Chat Interface"
-    puts "=" * 40
-    puts "Model: #{@model}"
-    puts "Mode: #{@mcp_mode ? 'MCP' : 'Standard'}"
-    puts "Type 'exit', 'quit', or press Ctrl+C to end the conversation"
-    puts "Type 'clear' to clear conversation history"
-    puts "Type 'help' for available commands"
-    puts "=" * 40
-    puts
-  end
-
-  def setup_signal_handling
-    Signal.trap("INT") do
-      puts "\n\n👋 Goodbye!"
-      exit(0)
-    end
-  end
-
-  def chat_loop
-    loop do
-      print "💬 You: "
-      user_input = gets&.chomp
-
-      # Handle nil input (EOF)
-      if user_input.nil?
-        puts "\n👋 Goodbye!"
-        break
-      end
-
-      # Handle commands
-      case user_input.downcase.strip
-      when "exit", "quit"
-        puts "👋 Goodbye!"
-        break
-      when "clear"
-        @messages.clear
-        puts "🧹 Conversation history cleared."
-        puts
-        next
-      when "help"
-        print_help
-        next
-      when ""
-        puts "Please enter a message or command."
-        next
-      end
-
-      # Add user message to conversation
-      if @mcp_mode
-        @messages << { role: "user", content: user_input, type: "mcp" }
-      else
-        @messages << { role: "user", content: user_input }
-      end
-
-      # Get AI response with streaming
-      print "🤖 Assistant: "
-      get_streaming_response
-      puts "\n"
-    end
-  end
-
-  def get_streaming_response
-    response_content = ""
-    
-    begin
-      if @mcp_mode
-        @client.chat.stream(
-          model: @model,
-          messages: @messages,
-          temperature: 0.7,
-          max_tokens: 1000,
-          mcp: true
-        ) do |chunk|
-          if chunk.content
-            print chunk.content
-            $stdout.flush
-            response_content += chunk.content
-          end
-        end
-      else
-        @client.chat.stream(
-          model: @model,
-          messages: @messages,
-          temperature: 0.7,
-          max_tokens: 1000
-        ) do |chunk|
-          if chunk.content
-            print chunk.content
-            $stdout.flush
-            response_content += chunk.content
-          end
-        end
-      end
-
-      # Add assistant response to conversation history
-      if @mcp_mode
-        @messages << { role: "assistant", content: response_content, type: "mcp" }
-      else
-        @messages << { role: "assistant", content: response_content }
-      end
-
-    rescue MistralAI::RateLimitError => e
-      puts "\n⚠️  Rate limit exceeded. Please wait a moment and try again."
-      puts "Error: #{e.message}"
-      # Remove the user message since we couldn't process it
-      @messages.pop
-    rescue MistralAI::AuthenticationError => e
-      puts "\n❌ Authentication failed. Please check your API key."
-      puts "Error: #{e.message}"
-      exit(1)
-    rescue MistralAI::APIError => e
-      puts "\n❌ API error occurred:"
-      puts "Error: #{e.message}"
-      # Remove the user message since we couldn't process it
-      @messages.pop
-    rescue => e
-      puts "\n❌ Unexpected error occurred:"
-      puts "Error: #{e.message}"
-      # Remove the user message since we couldn't process it
-      @messages.pop
-    end
-  end
-
-  def print_help
-    puts
-    puts "📖 Available Commands:"
-    puts "  exit, quit  - End the conversation"
-    puts "  clear       - Clear conversation history"
-    puts "  help        - Show this help message"
-    puts
-    puts "💡 Tips:"
-    puts "  - Your conversation history is maintained across messages"
-    puts "  - Responses are streamed in real-time"
-    puts "  - Press Ctrl+C to exit at any time"
-    if @mcp_mode
-      puts "  - You are in MCP mode - messages will be processed as MCP commands"
-    end
-    puts
-  end
-end
-
-# Command line argument parsing
-def parse_arguments
-  options = {}
-  
-  OptionParser.new do |opts|
-    opts.banner = "Usage: #{$0} [options]"
-    opts.separator ""
-    opts.separator "Mistral AI Console Chat Interface"
-    opts.separator ""
-    opts.separator "Options:"
-
-    opts.on("-k", "--api-key KEY", "Mistral AI API key (required)") do |key|
-      options[:api_key] = key
-    end
-
-    opts.on("-m", "--model MODEL", "Model to use (default: mistral-small-latest)") do |model|
-      options[:model] = model
-    end
-
-    opts.on("--mcp", "Enable MCP mode") do
-      options[:mcp_mode] = true
-    end
-
-    opts.on("-h", "--help", "Show this help message") do
-      puts opts
-      exit
-    end
-
-    opts.separator ""
-    opts.separator "Examples:"
-    opts.separator "  #{$0} --api-key your-api-key-here"
-    opts.separator "  #{$0} -k your-api-key -m mistral-large-latest"
-    opts.separator "  #{$0} -k your-api-key --mcp"
-    opts.separator ""
-    opts.separator "Environment Variables:"
-    opts.separator "  MISTRAL_API_KEY - API key (if not provided via --api-key)"
-  end.parse!
-
-  # Check for API key from environment if not provided
-  options[:api_key] ||= ENV["MISTRAL_API_KEY"]
-
-  unless options[:api_key]
-    puts "❌ Error: API key is required"
-    puts "Please provide it via --api-key parameter or MISTRAL_API_KEY environment variable"
-    puts
-    puts "Usage: #{$0} --api-key your-api-key-here"
-    exit(1)
-  end
-
-  options[:model] ||= "mistral-small-latest"
-  options[:mcp_mode] ||= false
-  options
-end
-
-# Main execution
-if __FILE__ == $0
-  begin
-    options = parse_arguments
-    chat = MistralChat.new(
-      api_key: options[:api_key],
-      model: options[:model],
-      mcp_mode: options[:mcp_mode]
-    )
-    chat.start
   rescue => e
     puts "❌ Fatal error: #{e.message}"
-    if $DEBUG
+    if ENV["DEBUG"] || @options[:debug]
       puts "\nBacktrace:"
       puts e.backtrace
     end
     exit(1)
   end
+
+  private
+
+  def parse_arguments
+    OptionParser.new do |opts|
+      opts.banner = "Usage: #{$0} [options]"
+      opts.separator ""
+      opts.separator "Enhanced Mistral AI Console Chat Interface"
+      opts.separator ""
+      opts.separator "Basic Options:"
+
+      opts.on("-k", "--api-key KEY", "Mistral AI API key (required)") do |key|
+        @options[:api_key] = key
+      end
+
+      opts.on("-m", "--model MODEL", "Model to use (default: mistral-small-latest)") do |model|
+        @options[:model] = model
+      end
+
+      opts.separator ""
+      opts.separator "MCP Options:"
+
+      opts.on("--mcp", "Enable MCP mode") do
+        @options[:mcp_mode] = true
+      end
+
+      opts.on("--mcp-servers SERVERS", "Comma-separated list of MCP server names") do |servers|
+        @options[:mcp_servers] = servers
+      end
+
+      opts.on("--mcp-config FILE", "Path to MCP configuration file (JSON/YAML)") do |file|
+        @options[:mcp_config_file] = file
+      end
+
+      opts.separator ""
+      opts.separator "Prompt Options:"
+
+      opts.on("--system-prompt FILE", "Path to system prompt file") do |file|
+        @options[:system_prompt_file] = file
+      end
+
+      opts.separator ""
+      opts.separator "Utility Options:"
+
+      opts.on("--generate-samples [DIR]", "Generate sample configuration files") do |dir|
+        @options[:generate_samples] = dir || "."
+      end
+
+      opts.on("--debug", "Enable debug mode") do
+        @options[:debug] = true
+      end
+
+      opts.on("-h", "--help", "Show this help message") do
+        puts opts
+        puts
+        puts "Examples:"
+        puts "  Basic usage:"
+        puts "    #{$0} --api-key your-api-key-here"
+        puts ""
+        puts "  With specific model:"
+        puts "    #{$0} -k your-api-key -m mistral-large-latest"
+        puts ""
+        puts "  With MCP support:"
+        puts "    #{$0} -k your-api-key --mcp --mcp-servers filesystem,web-search"
+        puts ""
+        puts "  With configuration files:"
+        puts "    #{$0} -k your-api-key --mcp-config mcp_config.json --system-prompt system_prompt.txt"
+        puts ""
+        puts "  Generate sample files:"
+        puts "    #{$0} --generate-samples"
+        puts "    #{$0} --generate-samples ./config"
+        puts ""
+        puts "Environment Variables:"
+        puts "  MISTRAL_API_KEY - API key (if not provided via --api-key)"
+        exit
+      end
+
+      opts.separator ""
+    end.parse!
+
+    # Handle sample generation
+    if @options[:generate_samples]
+      puts "🛠️  Generating sample configuration files..."
+      files = MistralAI::ChatConfig.generate_sample_files(@options[:generate_samples])
+      puts "✅ Sample files generated successfully!"
+      puts ""
+      puts "Next steps:"
+      puts "1. Edit #{files[:mcp_config]} with your MCP server configurations"
+      puts "2. Edit #{files[:system_prompt]} with your desired system prompt"
+      puts "3. Run the chat with: #{$0} -k YOUR_API_KEY --mcp-config #{files[:mcp_config]} --system-prompt #{files[:system_prompt]}"
+      exit(0)
+    end
+  end
+
+  def validate_options
+    # Check for API key from environment if not provided
+    @options[:api_key] ||= ENV["MISTRAL_API_KEY"]
+
+    unless @options[:api_key]
+      puts "❌ Error: API key is required"
+      puts "Please provide it via --api-key parameter or MISTRAL_API_KEY environment variable"
+      puts ""
+      puts "Usage: #{$0} --api-key your-api-key-here"
+      puts "Or run: #{$0} --help for more options"
+      exit(1)
+    end
+
+    # Set defaults
+    @options[:model] ||= "mistral-small-latest"
+    @options[:mcp_mode] ||= false
+
+    # Validate file paths
+    if @options[:mcp_config_file] && !File.exist?(@options[:mcp_config_file])
+      puts "❌ Error: MCP configuration file not found: #{@options[:mcp_config_file]}"
+      exit(1)
+    end
+
+    if @options[:system_prompt_file] && !File.exist?(@options[:system_prompt_file])
+      puts "❌ Error: System prompt file not found: #{@options[:system_prompt_file]}"
+      exit(1)
+    end
+
+    # Enable MCP mode if MCP-related options are provided
+    if @options[:mcp_servers] || @options[:mcp_config_file]
+      @options[:mcp_mode] = true
+    end
+  end
+
+  def setup_configuration
+    # Load MCP settings if provided
+    mcp_settings = nil
+    if @options[:mcp_config_file]
+      puts "📋 Loading MCP configuration from #{@options[:mcp_config_file]}..."
+      mcp_settings = @config_manager.load_mcp_settings(@options[:mcp_config_file])
+      puts "✅ MCP configuration loaded successfully"
+    end
+
+    # Load system prompt if provided
+    system_prompt = nil
+    if @options[:system_prompt_file]
+      puts "📝 Loading system prompt from #{@options[:system_prompt_file]}..."
+      system_prompt = @config_manager.load_system_prompt(@options[:system_prompt_file])
+      puts "✅ System prompt loaded successfully"
+    end
+
+    # Parse MCP servers
+    mcp_servers = MistralAI::ChatConfig.parse_mcp_servers(@options[:mcp_servers])
+
+    # Store processed configuration
+    @processed_config = {
+      api_key: @options[:api_key],
+      model: @options[:model],
+      mcp_mode: @options[:mcp_mode],
+      mcp_servers: mcp_servers,
+      mcp_settings: mcp_settings,
+      system_prompt: system_prompt
+    }
+
+    # Debug output
+    if @options[:debug]
+      puts "\n🔍 Debug Configuration:"
+      puts "  API Key: #{@options[:api_key] ? '[SET]' : '[MISSING]'}"
+      puts "  Model: #{@processed_config[:model]}"
+      puts "  MCP Mode: #{@processed_config[:mcp_mode]}"
+      puts "  MCP Servers: #{@processed_config[:mcp_servers].inspect}"
+      puts "  MCP Settings: #{@processed_config[:mcp_settings] ? '[LOADED]' : '[NONE]'}"
+      puts "  System Prompt: #{@processed_config[:system_prompt] ? '[LOADED]' : '[NONE]'}"
+      puts ""
+    end
+  end
+
+  def start_chat_interface
+    puts "🚀 Starting Mistral AI Chat Interface..."
+    
+    chat = MistralAI::ChatInterface.new(
+      api_key: @processed_config[:api_key],
+      model: @processed_config[:model],
+      mcp_mode: @processed_config[:mcp_mode],
+      mcp_servers: @processed_config[:mcp_servers],
+      mcp_settings: @processed_config[:mcp_settings],
+      system_prompt: @processed_config[:system_prompt]
+    )
+    
+    chat.start
+  end
+end
+
+# Main execution
+if __FILE__ == $0
+  cli = MistralChatCLI.new
+  cli.run
 end 

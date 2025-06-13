@@ -19,6 +19,10 @@ require_relative "mistral-ai/structured_outputs"
 # MCP (Model Context Protocol) Support
 require_relative "mistral-ai/mcp"
 
+# Chat Interface Components
+require_relative "mistral-ai/chat_config"
+require_relative "mistral-ai/chat_interface"
+
 # Rails integration
 require_relative "mistral-ai/railtie" if defined?(Rails)
 
