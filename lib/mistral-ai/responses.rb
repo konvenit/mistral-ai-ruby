@@ -8,7 +8,7 @@ module MistralAI
 
       def initialize(data)
         @prompt_tokens = data["prompt_tokens"] || data[:prompt_tokens]
-        @completion_tokens = data["completion_tokens"] || data[:completion_tokens]  
+        @completion_tokens = data["completion_tokens"] || data[:completion_tokens]
         @total_tokens = data["total_tokens"] || data[:total_tokens]
       end
 
@@ -42,7 +42,7 @@ module MistralAI
 
       def parse_tool_calls(tool_calls_data)
         return nil if tool_calls_data.nil? || tool_calls_data.empty?
-        
+
         Array(tool_calls_data).map do |tool_call|
           {
             id: tool_call["id"] || tool_call[:id],
@@ -54,15 +54,15 @@ module MistralAI
 
       def parse_function(function_data)
         return nil unless function_data
-        
+
         function_hash = {
           name: function_data["name"] || function_data[:name]
         }
-        
+
         # Only include arguments if they exist
         arguments = function_data["arguments"] || function_data[:arguments]
         function_hash[:arguments] = arguments if arguments
-        
+
         function_hash
       end
     end
@@ -89,20 +89,26 @@ module MistralAI
 
       def parse_tool_calls(tool_calls_data)
         return nil if tool_calls_data.nil? || tool_calls_data.empty?
-        
+
         Array(tool_calls_data).map do |tool_call|
           hash = {}
           hash[:id] = tool_call["id"] || tool_call[:id] if tool_call["id"] || tool_call[:id]
           hash[:type] = tool_call["type"] || tool_call[:type] || "function"
-          
+
           function_data = tool_call["function"] || tool_call[:function]
           if function_data
             function_hash = {}
-            function_hash[:name] = function_data["name"] || function_data[:name] if function_data["name"] || function_data[:name]
-            function_hash[:arguments] = function_data["arguments"] || function_data[:arguments] if function_data["arguments"] || function_data[:arguments]
+            if function_data["name"] || function_data[:name]
+              function_hash[:name] =
+                function_data["name"] || function_data[:name]
+            end
+            if function_data["arguments"] || function_data[:arguments]
+              function_hash[:arguments] =
+                function_data["arguments"] || function_data[:arguments]
+            end
             hash[:function] = function_hash unless function_hash.empty?
           end
-          
+
           hash
         end
       end
@@ -199,6 +205,7 @@ module MistralAI
       # Extract tool calls as ToolCall objects (Phase 4 feature)
       def extract_tool_calls
         return [] unless defined?(Tools::ToolUtils)
+
         Tools::ToolUtils.extract_tool_calls(self)
       end
 
@@ -228,7 +235,7 @@ module MistralAI
       # Validate response against schema
       def validate_schema(schema)
         return false unless content && defined?(StructuredOutputs::Utils)
-        
+
         begin
           StructuredOutputs::Utils.validate_json(content, schema)
           true
@@ -241,7 +248,7 @@ module MistralAI
 
       def parse_choices(choices_data)
         return nil unless choices_data
-        
+
         Array(choices_data).map { |choice_data| Choice.new(choice_data) }
       end
     end
@@ -287,14 +294,14 @@ module MistralAI
 
       def parse_stream_choices(choices_data)
         return nil unless choices_data
-        
+
         Array(choices_data).map { |choice_data| StreamChoice.new(choice_data) }
       end
     end
 
     # Agent response for agent management operations
     class Agent
-      attr_reader :id, :name, :model, :version, :created_at, :updated_at, 
+      attr_reader :id, :name, :model, :version, :created_at, :updated_at,
                   :instructions, :tools, :description, :completion_args, :handoffs, :object
 
       def initialize(data)

@@ -37,12 +37,12 @@ module MistralAI
           req.body = JSON.generate(body) if body
           req.headers["Accept"] = "text/event-stream"
         end
-        
+
         # Parse the streaming response manually
         response.body.to_s.each_line do |line|
-          block.call(line) if block
+          block&.call(line)
         end
-        
+
         response
       else
         # Handle regular request

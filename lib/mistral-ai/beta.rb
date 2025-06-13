@@ -11,4 +11,4 @@ module MistralAI
       @agents = Resources::BetaAgents.new(client)
     end
   end
-end 
+end

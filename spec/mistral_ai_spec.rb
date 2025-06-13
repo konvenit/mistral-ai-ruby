@@ -7,44 +7,44 @@ RSpec.describe MistralAI do
 
   describe ".configuration" do
     it "returns a configuration instance" do
-      expect(MistralAI.configuration).to be_a(MistralAI::Configuration)
+      expect(described_class.configuration).to be_a(MistralAI::Configuration)
     end
 
     it "memoizes the configuration" do
-      config1 = MistralAI.configuration
-      config2 = MistralAI.configuration
+      config1 = described_class.configuration
+      config2 = described_class.configuration
       expect(config1).to be(config2)
     end
   end
 
   describe ".configure" do
     it "yields the configuration" do
-      expect { |b| MistralAI.configure(&b) }.to yield_with_args(MistralAI.configuration)
+      expect { |b| described_class.configure(&b) }.to yield_with_args(described_class.configuration)
     end
 
     it "allows setting configuration values" do
-      MistralAI.configure do |config|
+      described_class.configure do |config|
         config.api_key = "test-key"
         config.timeout = 60
       end
 
-      expect(MistralAI.configuration.api_key).to eq("test-key")
-      expect(MistralAI.configuration.timeout).to eq(60)
+      expect(described_class.configuration.api_key).to eq("test-key")
+      expect(described_class.configuration.timeout).to eq(60)
     end
   end
 
   describe ".client" do
     it "creates a client with global configuration" do
-      MistralAI.configure { |config| config.api_key = "global-key" }
-      client = MistralAI.client
+      described_class.configure { |config| config.api_key = "global-key" }
+      client = described_class.client
 
       expect(client).to be_a(MistralAI::Client)
       expect(client.configuration.api_key).to eq("global-key")
     end
 
     it "overrides global configuration with provided api_key" do
-      MistralAI.configure { |config| config.api_key = "global-key" }
-      client = MistralAI.client(api_key: "override-key")
+      described_class.configure { |config| config.api_key = "global-key" }
+      client = described_class.client(api_key: "override-key")
 
       expect(client.configuration.api_key).to eq("override-key")
     end

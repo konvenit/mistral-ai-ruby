@@ -14,10 +14,10 @@ module MistralAI
       def complete(agent_id:, messages:, **options)
         # Validate agent_id
         validate_agent_id(agent_id)
-        
+
         # Build and validate messages
         processed_messages = Messages::MessageBuilder.build_messages(messages)
-        
+
         # Prepare request body
         body = {
           agent_id: agent_id,
@@ -27,10 +27,10 @@ module MistralAI
 
         # Make the API request
         response_data = post(AGENT_COMPLETION_ENDPOINT, body: body)
-        
+
         # Return structured response
         Responses::ChatResponse.new(response_data)
-      rescue => e
+      rescue StandardError => e
         handle_completion_error(e)
       end
 
@@ -38,10 +38,10 @@ module MistralAI
       def stream(agent_id:, messages:, **options, &block)
         # Validate agent_id
         validate_agent_id(agent_id)
-        
+
         # Build and validate messages
         processed_messages = Messages::MessageBuilder.build_messages(messages)
-        
+
         # Prepare request body
         body = {
           agent_id: agent_id,
@@ -57,7 +57,7 @@ module MistralAI
           # Return enumerable
           Streaming::StreamEnumerator.new(http_client, path: AGENT_COMPLETION_ENDPOINT, body: body)
         end
-      rescue => e
+      rescue StandardError => e
         handle_completion_error(e)
       end
 
@@ -65,13 +65,11 @@ module MistralAI
 
       # Validate agent_id parameter
       def validate_agent_id(agent_id)
-        unless agent_id.is_a?(String)
-          raise ArgumentError, "agent_id must be a string"
-        end
-        
-        if agent_id.empty?
-          raise ArgumentError, "agent_id is required and cannot be empty"
-        end
+        raise ArgumentError, "agent_id must be a string" unless agent_id.is_a?(String)
+
+        return unless agent_id.empty?
+
+        raise ArgumentError, "agent_id is required and cannot be empty"
       end
 
       # Filter and validate agent completion options
@@ -92,7 +90,7 @@ module MistralAI
         }
 
         filtered = {}
-        
+
         allowed_options.each do |option_key, api_key|
           if options.key?(option_key)
             value = options[option_key]
@@ -128,9 +126,7 @@ module MistralAI
 
       # Validate tools parameter
       def validate_tools(tools)
-        unless tools.is_a?(Array)
-          raise ArgumentError, "tools must be an array"
-        end
+        raise ArgumentError, "tools must be an array" unless tools.is_a?(Array)
 
         tools.each do |tool|
           unless tool.is_a?(Hash) && tool[:type] && tool[:function]
@@ -164,10 +160,10 @@ module MistralAI
           raise ArgumentError, "response_format must be a hash with 'type' key"
         end
 
-        valid_types = ["text", "json_object"]
-        unless valid_types.include?(response_format[:type])
-          raise ArgumentError, "response_format type must be one of: #{valid_types.join(', ')}"
-        end
+        valid_types = %w[text json_object]
+        return if valid_types.include?(response_format[:type])
+
+        raise ArgumentError, "response_format type must be one of: #{valid_types.join(', ')}"
       end
 
       # Handle errors specific to agent completion

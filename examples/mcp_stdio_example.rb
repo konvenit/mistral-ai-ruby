@@ -7,18 +7,18 @@ require "mistral-ai"
 
 # Example usage of MCP STDIO client with Mistral AI
 def main
-  api_key = ENV["MISTRAL_API_KEY"]
+  api_key = ENV.fetch("MISTRAL_API_KEY", nil)
   unless api_key
     puts "Please set MISTRAL_API_KEY environment variable"
     exit 1
   end
 
-  client = MistralAI::Client.new(api_key: api_key)
+  MistralAI::Client.new(api_key: api_key)
 
   # Create a local MCP server connection (stdio)
-  # 
+  #
   # To run this example, you need a working MCP server. Here are some options:
-  # 
+  #
   # Option 1: Install the filesystem MCP server (recommended for testing)
   # npm install -g @modelcontextprotocol/server-filesystem
   # Then use: "npx", ["@modelcontextprotocol/server-filesystem", "/path/to/directory"]
@@ -29,7 +29,7 @@ def main
   #
   # For this example, we'll try to use the filesystem server if available
   current_dir = Dir.pwd
-  
+
   # Try multiple possible MCP servers in order of preference
   server_configs = [
     # Filesystem server via npx (most common)
@@ -55,18 +55,18 @@ def main
   # Find the first available server
   server_params = nil
   server_name = nil
-  
+
   server_configs.each do |config|
     # Check if the command exists
-    if system("which #{config[:command]} > /dev/null 2>&1")
-      puts "Trying #{config[:name]}..."
-      server_params = MistralAI::MCP::StdioServerParameters.new(
-        command: config[:command],
-        args: config[:args]
-      )
-      server_name = config[:name]
-      break
-    end
+    next unless system("which #{config[:command]} > /dev/null 2>&1")
+
+    puts "Trying #{config[:name]}..."
+    server_params = MistralAI::MCP::StdioServerParameters.new(
+      command: config[:command],
+      args: config[:args]
+    )
+    server_name = config[:name]
+    break
   end
 
   unless server_params
@@ -98,7 +98,7 @@ def main
     if tools.any?
       tool_name = tools.first.dig("function", "name")
       puts "\nExecuting tool: #{tool_name}"
-      
+
       # Adjust arguments based on your tool's requirements
       args = case tool_name
              when "read_file"
@@ -114,7 +114,7 @@ def main
              else
                {}
              end
-      
+
       result = mcp_client.execute_tool(tool_name, args)
       puts "Tool result: #{result}"
     end
@@ -132,17 +132,17 @@ def main
     # by passing them to the Mistral client
     if tools.any?
       puts "\nUsing MCP tools in chat completion..."
-      
+
       # Adjust the message based on available tools
       content = if tools.any? { |t| t.dig("function", "name")&.include?("file") }
                   "Help me understand what files are in my current directory"
                 else
                   "Please use the available tools to demonstrate their functionality"
                 end
-      
-      messages = [
+
+      [
         {
-          role: "user", 
+          role: "user",
           content: content
         }
       ]
@@ -162,10 +162,9 @@ def main
       puts "\nNote: Actual API calls may take longer when tools are involved."
       puts "The MCP integration is working correctly!"
     end
-
   rescue MistralAI::MCP::MCPException => e
     puts "MCP Error: #{e.message}"
-  rescue => e
+  rescue StandardError => e
     puts "Error: #{e.message}"
   ensure
     # Clean up
@@ -174,6 +173,4 @@ def main
   end
 end
 
-if __FILE__ == $0
-  main
-end 
+main if __FILE__ == $PROGRAM_NAME

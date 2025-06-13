@@ -11,11 +11,11 @@ require_relative "beta"
 
 module MistralAI
   class Client
-    attr_reader :configuration
-    attr_reader :http_client, :chat, :agents, :embeddings, :fine_tuning, :ocr, :beta
+    attr_reader :configuration, :http_client, :chat, :agents, :embeddings, :fine_tuning, :ocr, :beta
 
     def initialize(api_key: nil, base_url: nil, timeout: nil, logger: nil, max_retries: nil, retry_delay: nil)
-      @configuration = MistralAI.configuration.copy(api_key: api_key, base_url: base_url, timeout: timeout, logger: logger, max_retries: max_retries, retry_delay: retry_delay)
+      @configuration = MistralAI.configuration.copy(api_key: api_key, base_url: base_url, timeout: timeout,
+                                                    logger: logger, max_retries: max_retries, retry_delay: retry_delay)
 
       @http_client = HTTPClient.new(@configuration)
       @chat = Resources::Chat.new(self)

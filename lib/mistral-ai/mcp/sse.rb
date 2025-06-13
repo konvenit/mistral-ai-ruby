@@ -50,16 +50,14 @@ module MistralAI
 
       # Set OAuth parameters for authentication
       def set_oauth_params(oauth_params)
-        if @oauth_params
-          @logger.warn "Overriding current OAuth params for #{@name}"
-        end
+        @logger.warn "Overriding current OAuth params for #{@name}" if @oauth_params
         @oauth_params = oauth_params
       end
 
       # Get authorization URL and state for OAuth flow
       def get_auth_url_and_state(redirect_url)
         unless @oauth_params
-          raise MCPAuthException, 
+          raise MCPAuthException,
                 "Can't generate an authorization url without oauth_params being set"
         end
 
@@ -73,7 +71,7 @@ module MistralAI
       # Exchange authorization response for token
       def get_token_from_auth_response(authorization_response, redirect_url, state)
         unless @oauth_params
-          raise MCPAuthException, 
+          raise MCPAuthException,
                 "Can't fetch a token without oauth_params"
         end
 
@@ -90,12 +88,12 @@ module MistralAI
       # Refresh an expired token
       def refresh_auth_token
         unless @oauth_params&.scheme&.refresh_endpoint
-          raise MCPAuthException, 
+          raise MCPAuthException,
                 "Can't refresh a token without a refresh url"
         end
 
         unless @auth_token
-          raise MCPAuthException, 
+          raise MCPAuthException,
                 "Can't refresh a token without a refresh token"
         end
 
@@ -120,7 +118,7 @@ module MistralAI
           req.options.timeout = @sse_params.timeout
         end
         response.status == 401
-      rescue => e
+      rescue StandardError => e
         @logger.warn "Error checking auth requirements: #{e.message}"
         false
       end
@@ -131,7 +129,7 @@ module MistralAI
 
         begin
           setup_http_client
-          
+
           # Send initialize request
           initialize_request = {
             jsonrpc: "2.0",
@@ -152,13 +150,11 @@ module MistralAI
 
           response = send_sse_request("initialize", initialize_request["params"])
 
-          if response["error"]
-            raise MCPException, "Failed to initialize MCP session: #{response['error']['message']}"
-          end
+          raise MCPException, "Failed to initialize MCP session: #{response['error']['message']}" if response["error"]
 
           @logger.info "SSE MCP session initialized successfully"
           @initialized = true
-        rescue => e
+        rescue StandardError => e
           @logger.error "Failed to initialize SSE MCP session: #{e.message}"
           raise MCPConnectionException, "Failed to initialize SSE MCP session: #{e.message}"
         end
@@ -190,9 +186,7 @@ module MistralAI
       # Format headers including authentication
       def format_headers
         headers = @sse_params.headers.dup
-        if @auth_token
-          headers["Authorization"] = "Bearer #{@auth_token['access_token']}"
-        end
+        headers["Authorization"] = "Bearer #{@auth_token['access_token']}" if @auth_token
         headers
       end
 
@@ -219,13 +213,11 @@ module MistralAI
         end
 
         handle_sse_response(response)
-      rescue Faraday::UnauthorizedError => e
-        if @oauth_params
-          raise MCPAuthException, "Authentication required"
-        else
-          raise MCPAuthException, "Authentication required but no auth params provided"
-        end
-      rescue => e
+      rescue Faraday::UnauthorizedError
+        raise MCPAuthException, "Authentication required" if @oauth_params
+
+        raise MCPAuthException, "Authentication required but no auth params provided"
+      rescue StandardError => e
         @logger.error "Error sending SSE request: #{e.message}"
         raise MCPConnectionException, "Failed to send SSE request: #{e.message}"
       end
@@ -235,11 +227,10 @@ module MistralAI
         unless response.success?
           case response.status
           when 401
-            if @oauth_params
-              raise MCPAuthException, "Authentication required"
-            else
-              raise MCPAuthException, "Authentication required but no auth params provided"
-            end
+            raise MCPAuthException, "Authentication required" if @oauth_params
+
+            raise MCPAuthException, "Authentication required but no auth params provided"
+
           else
             raise MCPConnectionException, "HTTP #{response.status}: #{response.body}"
           end
@@ -247,7 +238,7 @@ module MistralAI
 
         begin
           parsed_response = response.body.is_a?(String) ? JSON.parse(response.body) : response.body
-          
+
           if parsed_response["error"]
             error_message = parsed_response["error"]["message"] || "Unknown error"
             error_code = parsed_response["error"]["code"]
@@ -255,7 +246,7 @@ module MistralAI
           end
 
           parsed_response["result"] || {}
-        rescue JSON::ParserError => e
+        rescue JSON::ParserError
           @logger.error "Invalid JSON response: #{response.body}"
           raise MCPException, "Invalid JSON response from MCP server"
         end
@@ -267,4 +258,4 @@ module MistralAI
       end
     end
   end
-end 
+end

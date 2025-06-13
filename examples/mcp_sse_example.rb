@@ -8,23 +8,23 @@ require "webrick"
 
 # Example usage of MCP SSE client with OAuth authentication
 def main
-  api_key = ENV["MISTRAL_API_KEY"]
+  api_key = ENV.fetch("MISTRAL_API_KEY", nil)
   unless api_key
     puts "Please set MISTRAL_API_KEY environment variable"
     exit 1
   end
 
-  client = MistralAI::Client.new(api_key: api_key)
+  MistralAI::Client.new(api_key: api_key)
 
   # Example remote MCP server URL (adjust for your server)
   # Note: This example uses Linear's MCP server which requires OAuth
   server_url = ENV["MCP_SSE_SERVER_URL"] || "https://mcp.linear.app/sse"
-  
+
   puts "This example demonstrates SSE MCP client with OAuth authentication"
   puts "Server URL: #{server_url}"
   puts "ℹ️  This example requires a working MCP SSE server with OAuth."
   puts "To test with a different server, set MCP_SSE_SERVER_URL environment variable."
-  
+
   # Set up SSE parameters
   sse_params = MistralAI::MCP::SSEServerParams.new(
     url: server_url,
@@ -44,14 +44,14 @@ def main
     puts "Checking if authentication is required..."
     if mcp_client.requires_auth?
       puts "✅ Authentication required for MCP server"
-      
+
       # Set up OAuth callback server
       callback_received = false
       auth_response = nil
-      
+
       callback_server = WEBrick::HTTPServer.new(
         Port: 8080,
-        Logger: WEBrick::Log.new("/dev/null"),
+        Logger: WEBrick::Log.new(File::NULL),
         AccessLog: []
       )
 
@@ -70,7 +70,7 @@ def main
       # Build OAuth parameters
       puts "Setting up OAuth configuration..."
       oauth_params = MistralAI::MCP.build_oauth_params(
-        mcp_client.base_url, 
+        mcp_client.base_url,
         redirect_url: redirect_url
       )
       mcp_client.set_oauth_params(oauth_params)
@@ -91,7 +91,7 @@ def main
         sleep 1
         timeout_counter += 1
       end
-      
+
       unless callback_received
         puts "❌ Authorization timeout. OAuth flow was not completed within 30 seconds."
         puts "This is expected if you don't have Linear access or didn't complete the OAuth flow."
@@ -102,8 +102,8 @@ def main
       # Exchange code for token
       puts "Exchanging authorization code for token..."
       token = mcp_client.get_token_from_auth_response(
-        auth_response, 
-        redirect_url, 
+        auth_response,
+        redirect_url,
         state
       )
       mcp_client.set_auth_token(token)
@@ -125,7 +125,7 @@ def main
     if tools.any?
       tool_name = tools.first.dig("function", "name")
       puts "\nExecuting tool: #{tool_name}"
-      
+
       # Adjust arguments based on your tool's requirements
       result = mcp_client.execute_tool(tool_name, {})
       puts "Tool result: #{result}"
@@ -143,13 +143,6 @@ def main
     # Use tools in chat completion
     if tools.any?
       puts "\nUsing MCP tools in chat completion..."
-      
-      messages = [
-        {
-          role: "user",
-          content: "Tell me about my Linear workspace and projects"
-        }
-      ]
 
       puts "✅ MCP tools are now ready for use with Mistral AI!"
       puts "Example usage:"
@@ -166,7 +159,6 @@ def main
       puts "\nNote: Actual API calls may take longer when tools are involved."
       puts "The MCP SSE integration is working correctly!"
     end
-
   rescue MistralAI::MCP::MCPAuthException => e
     puts "❌ Authentication Error: #{e.message}"
     puts "Make sure the MCP server supports OAuth and is properly configured"
@@ -185,7 +177,7 @@ def main
     puts "  - Server URL: #{server_url}"
     puts "  - Network connectivity"
     puts "  - Server availability"
-  rescue => e
+  rescue StandardError => e
     puts "❌ Unexpected Error: #{e.message}"
     puts "Error class: #{e.class}"
     puts "Backtrace:"
@@ -197,6 +189,4 @@ def main
   end
 end
 
-if __FILE__ == $0
-  main
-end 
+main if __FILE__ == $PROGRAM_NAME

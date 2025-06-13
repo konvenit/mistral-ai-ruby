@@ -10,7 +10,7 @@ puts "=== Mistral AI Ruby Client - Agents API Examples ==="
 puts
 
 # Check for API key
-api_key = ENV["MISTRAL_API_KEY"]
+api_key = ENV.fetch("MISTRAL_API_KEY", nil)
 if api_key.nil? || api_key.empty?
   puts "❌ MISTRAL_API_KEY environment variable is required for these examples"
   puts "Please set your API key: export MISTRAL_API_KEY='your-api-key'"
@@ -53,7 +53,7 @@ begin
     name: "Example Agent #{Time.now.to_i}",
     instructions: "You are a helpful AI assistant that provides clear, concise answers and maintains a professional tone."
   )
-  
+
   puts "✅ Agent created: #{created_agent.id}"
   puts "Name: #{created_agent.name}"
   puts "Model: #{created_agent.model}"
@@ -61,33 +61,30 @@ begin
 
   # Use the agent via conversations API
   puts "Starting conversation with custom agent..."
-  
+
   conversation_body = {
     agent_id: created_agent.id,
     inputs: "Hello! Can you analyze the current trends in renewable energy technology?"
   }
 
   response = client.http_client.post("/v1/conversations", body: conversation_body)
-  
+
   conversation_id = response["conversation_id"]
   outputs = response["outputs"]
   usage = response["usage"]
 
   puts "✅ Conversation successful!"
   puts "Conversation ID: #{conversation_id}"
-  
+
   if outputs && !outputs.empty?
     first_output = outputs.first
     puts "Response: #{first_output['content']}"
     puts "Model: #{first_output['model']}"
   end
-  
-  if usage
-    puts "Usage: #{usage['total_tokens']} tokens (#{usage['prompt_tokens']} + #{usage['completion_tokens']})"
-  end
-  puts
 
-rescue => e
+  puts "Usage: #{usage['total_tokens']} tokens (#{usage['prompt_tokens']} + #{usage['completion_tokens']})" if usage
+  puts
+rescue StandardError => e
   puts "❌ Error: #{e.class.name}: #{e.message}"
   puts
 end
@@ -99,29 +96,26 @@ puts "=" * 50
 if conversation_id && created_agent
   begin
     puts "Continuing conversation..."
-    
+
     append_body = {
       inputs: "Can you give me 3 specific examples of recent innovations in this field?"
     }
 
     response = client.http_client.post("/v1/conversations/#{conversation_id}", body: append_body)
-    
+
     outputs = response["outputs"]
     usage = response["usage"]
 
     puts "✅ Conversation continued!"
-    
+
     if outputs && !outputs.empty?
       first_output = outputs.first
       puts "Response: #{first_output['content']}"
     end
-    
-    if usage
-      puts "Usage: #{usage['total_tokens']} tokens"
-    end
-    puts
 
-  rescue => e
+    puts "Usage: #{usage['total_tokens']} tokens" if usage
+    puts
+  rescue StandardError => e
     puts "❌ Error: #{e.class.name}: #{e.message}"
     puts
   end
@@ -136,16 +130,16 @@ puts "=" * 50
 
 begin
   puts "Creating agent with web search capability..."
-  
-  # Note: Some models/tools may not be available for all accounts
+
+  # NOTE: Some models/tools may not be available for all accounts
   tool_agent = client.beta.agents.create(
     model: "mistral-large-latest",
     name: "Research Agent #{Time.now.to_i}",
     instructions: "You are a research assistant that helps users find information."
   )
-  
+
   puts "✅ Tool agent created: #{tool_agent.id}"
-  
+
   # Use the agent
   conversation_body = {
     agent_id: tool_agent.id,
@@ -153,16 +147,13 @@ begin
   }
 
   response = client.http_client.post("/v1/conversations", body: conversation_body)
-  
-  outputs = response["outputs"]
-  
-  puts "✅ Tool agent response:"
-  if outputs && !outputs.empty?
-    puts outputs.first['content']
-  end
-  puts
 
-rescue => e
+  outputs = response["outputs"]
+
+  puts "✅ Tool agent response:"
+  puts outputs.first["content"] if outputs && !outputs.empty?
+  puts
+rescue StandardError => e
   puts "❌ Error: #{e.class.name}: #{e.message}"
   puts
 end
@@ -173,16 +164,15 @@ puts "=" * 50
 
 begin
   puts "Listing all agents in account..."
-  
+
   agents = client.beta.agents.list(page_size: 5)
-  
+
   puts "✅ Found #{agents.length} agents:"
   agents.each_with_index do |agent, index|
     puts "#{index + 1}. #{agent.name} (#{agent.id}) - #{agent.model}"
   end
   puts
-
-rescue => e
+rescue StandardError => e
   puts "❌ Error: #{e.class.name}: #{e.message}"
   puts
 end
@@ -212,8 +202,7 @@ begin
   )
 
   puts "✅ Direct agent response: #{response.content}"
-
-rescue => e
+rescue StandardError => e
   puts "❌ Expected failure: #{e.message}"
   puts "This is normal - no pre-built agents are currently available."
   puts
@@ -225,19 +214,16 @@ puts "=" * 50
 
 begin
   puts "Attempting direct agent streaming..."
-  
+
   client.agents.stream(
     agent_id: "hypothetical-prebuilt-agent",
     messages: [
       { role: "user", content: "Tell me about AI" }
     ]
   ) do |chunk|
-    if chunk.choices.first.delta.content
-      print chunk.choices.first.delta.content
-    end
+    print chunk.choices.first.delta.content if chunk.choices.first.delta.content
   end
-
-rescue => e
+rescue StandardError => e
   puts "❌ Expected failure: #{e.message}"
   puts
 end
@@ -280,9 +266,9 @@ puts "=" * 50
 # Clean up created agents (optional)
 if created_agent
   begin
-    result = client.beta.agents.delete(agent_id: created_agent.id)
+    client.beta.agents.delete(agent_id: created_agent.id)
     puts "✅ Cleaned up agent: #{created_agent.id}"
-  rescue => e
+  rescue StandardError => e
     puts "⚠️  Cleanup failed (may not be supported): #{e.message}"
   end
 end
@@ -294,9 +280,9 @@ puts
 
 puts "📝 SUMMARY:"
 puts "✅ Custom agents (beta.agents + conversations) - WORKING"
-puts "❌ Direct agents (agents.complete) - Not available yet" 
+puts "❌ Direct agents (agents.complete) - Not available yet"
 puts "✅ Agent management (create, list, retrieve) - WORKING"
 puts "✅ Conversation continuity - WORKING"
 puts "✅ Error handling and validation - WORKING"
 puts
-puts "💡 TIP: Use custom agents with conversations API for production applications." 
+puts "💡 TIP: Use custom agents with conversations API for production applications."

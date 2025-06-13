@@ -11,9 +11,9 @@ RSpec.describe MistralAI::Responses do
           completion_tokens: 20,
           total_tokens: 30
         }
-        
+
         usage = described_class.new(data)
-        
+
         expect(usage.prompt_tokens).to eq(10)
         expect(usage.completion_tokens).to eq(20)
         expect(usage.total_tokens).to eq(30)
@@ -25,9 +25,9 @@ RSpec.describe MistralAI::Responses do
           "completion_tokens" => 25,
           "total_tokens" => 40
         }
-        
+
         usage = described_class.new(data)
-        
+
         expect(usage.prompt_tokens).to eq(15)
         expect(usage.completion_tokens).to eq(25)
         expect(usage.total_tokens).to eq(40)
@@ -41,14 +41,14 @@ RSpec.describe MistralAI::Responses do
           completion_tokens: 20,
           total_tokens: 30
         }
-        
+
         usage = described_class.new(data)
-        
+
         expect(usage.to_h).to eq({
-          prompt_tokens: 10,
-          completion_tokens: 20,
-          total_tokens: 30
-        })
+                                   prompt_tokens: 10,
+                                   completion_tokens: 20,
+                                   total_tokens: 30
+                                 })
       end
     end
   end
@@ -60,9 +60,9 @@ RSpec.describe MistralAI::Responses do
           "role" => "assistant",
           "content" => "Hello! How can I help you?"
         }
-        
+
         message = described_class.new(data)
-        
+
         expect(message.role).to eq("assistant")
         expect(message.content).to eq("Hello! How can I help you?")
         expect(message.tool_calls).to be_nil
@@ -83,21 +83,21 @@ RSpec.describe MistralAI::Responses do
             }
           ]
         }
-        
+
         message = described_class.new(data)
-        
+
         expect(message.role).to eq("assistant")
         expect(message.content).to be_nil
         expect(message.tool_calls).to eq([
-          {
-            id: "call_123",
-            type: "function",
-            function: {
-              name: "get_weather",
-              arguments: '{"location": "Paris"}'
-            }
-          }
-        ])
+                                           {
+                                             id: "call_123",
+                                             type: "function",
+                                             function: {
+                                               name: "get_weather",
+                                               arguments: '{"location": "Paris"}'
+                                             }
+                                           }
+                                         ])
       end
 
       it "handles empty tool_calls" do
@@ -106,9 +106,9 @@ RSpec.describe MistralAI::Responses do
           "content" => "Hello",
           "tool_calls" => []
         }
-        
+
         message = described_class.new(data)
-        
+
         expect(message.role).to eq("assistant")
         expect(message.content).to eq("Hello")
         expect(message.tool_calls).to be_nil
@@ -119,11 +119,11 @@ RSpec.describe MistralAI::Responses do
       it "returns hash with content only" do
         data = { "role" => "assistant", "content" => "Hello" }
         message = described_class.new(data)
-        
+
         expect(message.to_h).to eq({
-          role: "assistant",
-          content: "Hello"
-        })
+                                     role: "assistant",
+                                     content: "Hello"
+                                   })
       end
 
       it "returns hash with tool_calls" do
@@ -137,19 +137,19 @@ RSpec.describe MistralAI::Responses do
             }
           ]
         }
-        
+
         message = described_class.new(data)
-        
+
         expect(message.to_h).to eq({
-          role: "assistant",
-          tool_calls: [
-            {
-              id: "call_123",
-              type: "function",
-              function: { name: "get_weather" }
-            }
-          ]
-        })
+                                     role: "assistant",
+                                     tool_calls: [
+                                       {
+                                         id: "call_123",
+                                         type: "function",
+                                         function: { name: "get_weather" }
+                                       }
+                                     ]
+                                   })
       end
     end
   end
@@ -159,7 +159,7 @@ RSpec.describe MistralAI::Responses do
       it "initializes with content" do
         data = { "content" => "Hello" }
         delta = described_class.new(data)
-        
+
         expect(delta.content).to eq("Hello")
         expect(delta.role).to be_nil
         expect(delta.tool_calls).to be_nil
@@ -168,7 +168,7 @@ RSpec.describe MistralAI::Responses do
       it "initializes with role" do
         data = { "role" => "assistant" }
         delta = described_class.new(data)
-        
+
         expect(delta.role).to eq("assistant")
         expect(delta.content).to be_nil
       end
@@ -182,16 +182,16 @@ RSpec.describe MistralAI::Responses do
             }
           ]
         }
-        
+
         delta = described_class.new(data)
-        
+
         expect(delta.tool_calls).to eq([
-          {
-            id: "call_123",
-            type: "function",
-            function: { name: "get_weather" }
-          }
-        ])
+                                         {
+                                           id: "call_123",
+                                           type: "function",
+                                           function: { name: "get_weather" }
+                                         }
+                                       ])
       end
     end
 
@@ -199,14 +199,14 @@ RSpec.describe MistralAI::Responses do
       it "returns hash with only non-nil values" do
         data = { "content" => "Hello" }
         delta = described_class.new(data)
-        
+
         expect(delta.to_h).to eq({ content: "Hello" })
       end
 
       it "returns empty hash when all values are nil" do
         data = {}
         delta = described_class.new(data)
-        
+
         expect(delta.to_h).to eq({})
       end
     end
@@ -223,9 +223,9 @@ RSpec.describe MistralAI::Responses do
           },
           "finish_reason" => "stop"
         }
-        
+
         choice = described_class.new(data)
-        
+
         expect(choice.index).to eq(0)
         expect(choice.message).to be_a(MistralAI::Responses::Message)
         expect(choice.message.content).to eq("Hello!")
@@ -237,9 +237,9 @@ RSpec.describe MistralAI::Responses do
           "index" => 0,
           "finish_reason" => "stop"
         }
-        
+
         choice = described_class.new(data)
-        
+
         expect(choice.index).to eq(0)
         expect(choice.message).to be_nil
         expect(choice.finish_reason).to eq("stop")
@@ -253,14 +253,14 @@ RSpec.describe MistralAI::Responses do
           "message" => { "role" => "assistant", "content" => "Hello!" },
           "finish_reason" => "stop"
         }
-        
+
         choice = described_class.new(data)
-        
+
         expect(choice.to_h).to eq({
-          index: 0,
-          message: { role: "assistant", content: "Hello!" },
-          finish_reason: "stop"
-        })
+                                    index: 0,
+                                    message: { role: "assistant", content: "Hello!" },
+                                    finish_reason: "stop"
+                                  })
       end
     end
   end
@@ -273,9 +273,9 @@ RSpec.describe MistralAI::Responses do
           "delta" => { "content" => "Hello" },
           "finish_reason" => nil
         }
-        
+
         choice = described_class.new(data)
-        
+
         expect(choice.index).to eq(0)
         expect(choice.delta).to be_a(MistralAI::Responses::Delta)
         expect(choice.delta.content).to eq("Hello")
@@ -290,14 +290,14 @@ RSpec.describe MistralAI::Responses do
           "delta" => { "content" => "Hello" },
           "finish_reason" => "stop"
         }
-        
+
         choice = described_class.new(data)
-        
+
         expect(choice.to_h).to eq({
-          index: 0,
-          delta: { content: "Hello" },
-          finish_reason: "stop"
-        })
+                                    index: 0,
+                                    delta: { content: "Hello" },
+                                    finish_reason: "stop"
+                                  })
       end
     end
   end
@@ -307,7 +307,7 @@ RSpec.describe MistralAI::Responses do
       {
         "id" => "chatcmpl-123",
         "object" => "chat.completion",
-        "created" => 1677652288,
+        "created" => 1_677_652_288,
         "model" => "mistral-small-latest",
         "choices" => [
           {
@@ -331,7 +331,7 @@ RSpec.describe MistralAI::Responses do
       {
         "id" => "chatcmpl-456",
         "object" => "chat.completion",
-        "created" => 1677652288,
+        "created" => 1_677_652_288,
         "model" => "mistral-small-latest",
         "choices" => [
           {
@@ -365,7 +365,7 @@ RSpec.describe MistralAI::Responses do
       {
         "id" => "chatcmpl-789",
         "object" => "chat.completion",
-        "created" => 1677652288,
+        "created" => 1_677_652_288,
         "model" => "mistral-small-latest",
         "choices" => [
           {
@@ -432,7 +432,7 @@ RSpec.describe MistralAI::Responses do
           tool_calls = response.tool_calls
           expect(tool_calls).to be_an(Array)
           expect(tool_calls.length).to eq(1)
-          
+
           tool_call = tool_calls.first
           expect(tool_call[:id]).to eq("call_123")
           expect(tool_call[:type]).to eq("function")
@@ -449,16 +449,16 @@ RSpec.describe MistralAI::Responses do
         it "extracts tool calls as ToolCall objects" do
           # Skip if Tools module not loaded
           skip "Tools module not available" unless defined?(MistralAI::Tools::ToolUtils)
-          
+
           tool_calls = response.extract_tool_calls
           expect(tool_calls).to be_an(Array)
           expect(tool_calls.length).to eq(1)
-          
+
           tool_call = tool_calls.first
           expect(tool_call).to be_a(MistralAI::Tools::ToolCall)
           expect(tool_call.id).to eq("call_123")
           expect(tool_call.function_name).to eq("get_weather")
-          expect(tool_call.parsed_arguments).to eq({"location" => "Paris"})
+          expect(tool_call.parsed_arguments).to eq({ "location" => "Paris" })
         end
 
         it "returns empty array when no tool calls" do
@@ -469,7 +469,7 @@ RSpec.describe MistralAI::Responses do
         it "returns empty array when Tools module not loaded" do
           # Temporarily hide the Tools module
           tools_module = MistralAI.send(:remove_const, :Tools) if defined?(MistralAI::Tools)
-          
+
           begin
             expect(response.extract_tool_calls).to eq([])
           ensure
@@ -487,7 +487,7 @@ RSpec.describe MistralAI::Responses do
         it "parses JSON content as structured object" do
           # Skip if StructuredOutputs module not loaded
           skip "StructuredOutputs module not available" unless defined?(MistralAI::StructuredOutputs::ObjectMapper)
-          
+
           structured = response.structured_content
           expect(structured).to be_a(MistralAI::StructuredOutputs::StructuredObject)
           expect(structured.name).to eq("John Doe")
@@ -498,7 +498,7 @@ RSpec.describe MistralAI::Responses do
         it "parses with schema class" do
           # Skip if StructuredOutputs module not loaded
           skip "StructuredOutputs module not available" unless defined?(MistralAI::StructuredOutputs::BaseSchema)
-          
+
           schema_class = Class.new(MistralAI::StructuredOutputs::BaseSchema) do
             string_property :name, required: true
             integer_property :age, required: true
@@ -514,8 +514,10 @@ RSpec.describe MistralAI::Responses do
 
         it "falls back to JSON.parse when StructuredOutputs not available" do
           # Temporarily hide the StructuredOutputs module
-          structured_module = MistralAI.send(:remove_const, :StructuredOutputs) if defined?(MistralAI::StructuredOutputs)
-          
+          if defined?(MistralAI::StructuredOutputs)
+            structured_module = MistralAI.send(:remove_const, :StructuredOutputs)
+          end
+
           begin
             structured = response.structured_content
             expect(structured).to be_a(Hash)
@@ -530,7 +532,7 @@ RSpec.describe MistralAI::Responses do
           invalid_json_data = basic_response_data.dup
           invalid_json_data["choices"][0]["message"]["content"] = "Not valid JSON"
           invalid_response = described_class.new(invalid_json_data)
-          
+
           result = invalid_response.structured_content
           expect(result).to eq("Not valid JSON")
         end
@@ -550,21 +552,21 @@ RSpec.describe MistralAI::Responses do
               age: { type: "integer" },
               active: { type: "boolean" }
             },
-            required: ["name", "age"]
+            required: %w[name age]
           }
         end
 
         it "validates response against schema" do
           # Skip if StructuredOutputs module not loaded
           skip "StructuredOutputs module not available" unless defined?(MistralAI::StructuredOutputs::Utils)
-          
+
           expect(response.validate_schema(schema)).to be true
         end
 
         it "returns false for invalid schema" do
           # Skip if StructuredOutputs module not loaded
           skip "StructuredOutputs module not available" unless defined?(MistralAI::StructuredOutputs::Utils)
-          
+
           invalid_schema = {
             type: "object",
             properties: {
@@ -572,14 +574,16 @@ RSpec.describe MistralAI::Responses do
             },
             required: ["email"]
           }
-          
+
           expect(response.validate_schema(invalid_schema)).to be false
         end
 
         it "returns false when StructuredOutputs not available" do
           # Temporarily hide the StructuredOutputs module
-          structured_module = MistralAI.send(:remove_const, :StructuredOutputs) if defined?(MistralAI::StructuredOutputs)
-          
+          if defined?(MistralAI::StructuredOutputs)
+            structured_module = MistralAI.send(:remove_const, :StructuredOutputs)
+          end
+
           begin
             expect(response.validate_schema(schema)).to be false
           ensure
@@ -600,7 +604,7 @@ RSpec.describe MistralAI::Responses do
       {
         "id" => "chatcmpl-123",
         "object" => "chat.completion.chunk",
-        "created" => 1677652288,
+        "created" => 1_677_652_288,
         "model" => "mistral-small-latest",
         "choices" => [
           {
@@ -615,10 +619,10 @@ RSpec.describe MistralAI::Responses do
     describe "#initialize" do
       it "initializes a stream response" do
         response = described_class.new(sample_stream_data)
-        
+
         expect(response.id).to eq("chatcmpl-123")
         expect(response.object).to eq("chat.completion.chunk")
-        expect(response.created).to eq(1677652288)
+        expect(response.created).to eq(1_677_652_288)
         expect(response.model).to eq("mistral-small-latest")
         expect(response.choices.length).to eq(1)
         expect(response.choices.first).to be_a(MistralAI::Responses::StreamChoice)
@@ -637,7 +641,7 @@ RSpec.describe MistralAI::Responses do
       describe "#delta" do
         it "returns the first choice delta" do
           delta = response.delta
-          
+
           expect(delta).to be_a(MistralAI::Responses::Delta)
           expect(delta.content).to eq("Hello")
         end
@@ -654,11 +658,11 @@ RSpec.describe MistralAI::Responses do
       it "returns a hash representation" do
         response = described_class.new(sample_stream_data)
         hash = response.to_h
-        
+
         expect(hash[:id]).to eq("chatcmpl-123")
         expect(hash[:object]).to eq("chat.completion.chunk")
         expect(hash[:choices]).to be_a(Array)
       end
     end
   end
-end 
+end

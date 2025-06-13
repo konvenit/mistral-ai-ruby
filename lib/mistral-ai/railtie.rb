@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 module MistralAI
   class Railtie < Rails::Railtie
     config.mistral_ai = ActiveSupport::OrderedOptions.new
 
-    initializer 'mistral_ai.configure' do |app|
+    initializer "mistral_ai.configure" do |app|
       MistralAI.configure do |config|
         config.api_key = app.config.mistral_ai.api_key if app.config.mistral_ai.api_key
         config.base_url = app.config.mistral_ai.base_url if app.config.mistral_ai.base_url

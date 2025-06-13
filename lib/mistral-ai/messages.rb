@@ -33,7 +33,7 @@ module MistralAI
     class UserMessage < BaseMessage
       def initialize(content:)
         @role = "user"
-        super(content: content)
+        super
       end
     end
 
@@ -41,7 +41,7 @@ module MistralAI
     class SystemMessage < BaseMessage
       def initialize(content:)
         @role = "system"
-        super(content: content)
+        super
       end
     end
 
@@ -52,12 +52,12 @@ module MistralAI
       def initialize(content: nil, tool_calls: nil)
         @role = "assistant"
         @tool_calls = tool_calls
-        
+
         # Assistant messages can have either content or tool_calls, but not both nil
         if content.nil? && (tool_calls.nil? || tool_calls.empty?)
           raise ArgumentError, "Assistant message must have either content or tool_calls"
         end
-        
+
         @content = content
         validate_tool_calls! if tool_calls
       end
@@ -72,9 +72,7 @@ module MistralAI
       private
 
       def validate_tool_calls!
-        unless tool_calls.is_a?(Array)
-          raise ArgumentError, "tool_calls must be an array"
-        end
+        raise ArgumentError, "tool_calls must be an array" unless tool_calls.is_a?(Array)
 
         tool_calls.each do |tool_call|
           unless tool_call.is_a?(Hash) && tool_call[:id] && tool_call[:type] && tool_call[:function]
@@ -86,6 +84,7 @@ module MistralAI
       def validate_content!
         # Override to allow nil content for assistant messages with tool calls
         return if content.nil? && tool_calls && !tool_calls.empty?
+
         super
       end
     end
@@ -142,12 +141,10 @@ module MistralAI
         messages.map { |message| build(message) }
       end
 
-      private
-
       def self.build_from_hash(hash)
         role = hash[:role] || hash["role"]
         content = hash[:content] || hash["content"]
-        
+
         case role
         when "user"
           UserMessage.new(content: content)
@@ -165,4 +162,4 @@ module MistralAI
       end
     end
   end
-end 
+end

@@ -41,7 +41,7 @@ module MistralAI
         raise NotImplementedError, "Subclasses must implement initialize_session"
       end
 
-      # Close the MCP session - must be implemented by subclasses  
+      # Close the MCP session - must be implemented by subclasses
       def close
         raise NotImplementedError, "Subclasses must implement close"
       end
@@ -57,7 +57,7 @@ module MistralAI
         unless mcp_content.is_a?(Hash) && mcp_content["type"] == "text"
           raise MCPException, "Only supporting text tool responses for now."
         end
-        
+
         {
           "type" => "text",
           "text" => mcp_content["text"]
@@ -66,25 +66,23 @@ module MistralAI
 
       # Convert list of MCP contents to Mistral format
       def convert_content_list(mcp_contents)
-        content_chunks = []
-        mcp_contents.each do |mcp_content|
-          content_chunks << convert_content(mcp_content)
+        mcp_contents.map do |mcp_content|
+          convert_content(mcp_content)
         end
-        content_chunks
       end
 
       # Get available tools from MCP server
       def get_tools
         ensure_initialized
-        
+
         begin
           response = call_rpc_method("tools/list")
           tools = []
-          
+
           response["tools"]&.each do |mcp_tool|
             # Clean up the schema for Mistral API compatibility
             parameters = clean_schema_for_mistral(mcp_tool["inputSchema"])
-            
+
             tools << {
               "type" => "function",
               "function" => {
@@ -95,9 +93,9 @@ module MistralAI
               }
             }
           end
-          
+
           tools
-        rescue => e
+        rescue StandardError => e
           @logger.error "Error getting tools: #{e.message}"
           raise MCPException, "Failed to get tools: #{e.message}"
         end
@@ -106,16 +104,16 @@ module MistralAI
       # Execute a tool with given arguments
       def execute_tool(name, arguments = {})
         ensure_initialized
-        
+
         begin
           response = call_rpc_method("tools/call", {
-            "name" => name,
-            "arguments" => arguments
-          })
-          
+                                       "name" => name,
+                                       "arguments" => arguments
+                                     })
+
           content = response["content"] || []
           convert_content_list(content)
-        rescue => e
+        rescue StandardError => e
           @logger.error "Error executing tool #{name}: #{e.message}"
           raise MCPException, "Failed to execute tool #{name}: #{e.message}"
         end
@@ -124,25 +122,25 @@ module MistralAI
       # Get system prompt by name with arguments
       def get_system_prompt(name, arguments = {})
         ensure_initialized
-        
+
         begin
           response = call_rpc_method("prompts/get", {
-            "name" => name,
-            "arguments" => arguments
-          })
-          
+                                       "name" => name,
+                                       "arguments" => arguments
+                                     })
+
           messages = response["messages"]&.map do |message|
             {
               "role" => message["role"],
               "content" => convert_content(message["content"])
             }
           end || []
-          
+
           MCPSystemPrompt.new(
             description: response["description"],
             messages: messages
           )
-        rescue => e
+        rescue StandardError => e
           @logger.error "Error getting system prompt #{name}: #{e.message}"
           raise MCPException, "Failed to get system prompt #{name}: #{e.message}"
         end
@@ -151,10 +149,10 @@ module MistralAI
       # List available system prompts
       def list_system_prompts
         ensure_initialized
-        
+
         begin
           call_rpc_method("prompts/list")
-        rescue => e
+        rescue StandardError => e
           @logger.error "Error listing system prompts: #{e.message}"
           raise MCPException, "Failed to list system prompts: #{e.message}"
         end
@@ -177,10 +175,10 @@ module MistralAI
 
       # Ensure the client is initialized
       def ensure_initialized
-        unless @initialized
-          initialize_session
-          @initialized = true
-        end
+        return if @initialized
+
+        initialize_session
+        @initialized = true
       end
 
       # Call an RPC method - must be implemented by subclasses
@@ -193,29 +191,25 @@ module MistralAI
         return nil unless schema.is_a?(Hash)
 
         cleaned = schema.dup
-        
+
         # Remove MCP-specific schema fields that Mistral doesn't understand
         cleaned.delete("$schema")
         cleaned.delete("additionalProperties") if cleaned["additionalProperties"] != false
-        
+
         # Ensure additionalProperties is false for object types (Mistral requirement)
-        if cleaned["type"] == "object"
-          cleaned["additionalProperties"] = false
-        end
-        
+        cleaned["additionalProperties"] = false if cleaned["type"] == "object"
+
         # Recursively clean nested objects and arrays
         if cleaned["properties"].is_a?(Hash)
           cleaned["properties"] = cleaned["properties"].transform_values do |prop_schema|
             clean_schema_for_mistral(prop_schema)
           end
         end
-        
-        if cleaned["items"].is_a?(Hash)
-          cleaned["items"] = clean_schema_for_mistral(cleaned["items"])
-        end
-        
+
+        cleaned["items"] = clean_schema_for_mistral(cleaned["items"]) if cleaned["items"].is_a?(Hash)
+
         cleaned
       end
     end
   end
-end 
+end

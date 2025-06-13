@@ -1,14 +1,14 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require_relative '../lib/mistral-ai'
-require 'dotenv'
+require_relative "../lib/mistral-ai"
+require "dotenv"
 
 # Load environment variables from .env file
 Dotenv.load
 
 # Check for API key
-unless ENV['MISTRAL_API_KEY']
+unless ENV["MISTRAL_API_KEY"]
   puts "Error: MISTRAL_API_KEY not found in environment variables"
   puts "Please set MISTRAL_API_KEY in your .env file"
   exit 1
@@ -16,13 +16,13 @@ end
 
 begin
   # Initialize the client
-  client = MistralAI::Client.new(api_key: ENV['MISTRAL_API_KEY'])
+  client = MistralAI::Client.new(api_key: ENV.fetch("MISTRAL_API_KEY", nil))
 
   # Create embeddings for a single text
   puts "\nCreating embedding for single text..."
   response = client.embeddings.create(
-    model: 'mistral-embed',
-    input: 'Hello, world!'
+    model: "mistral-embed",
+    input: "Hello, world!"
   )
 
   puts "Single text embedding:"
@@ -32,19 +32,19 @@ begin
   # Create embeddings for multiple texts
   puts "\nCreating embeddings for multiple texts..."
   multiple_texts = [
-    'Hello, world!',
-    'How are you?',
-    'What is the weather like?'
+    "Hello, world!",
+    "How are you?",
+    "What is the weather like?"
   ]
 
   response = client.embeddings.create(
-    model: 'mistral-embed',
+    model: "mistral-embed",
     input: multiple_texts
   )
 
   puts "\nMultiple text embeddings:"
   puts "Number of embeddings: #{response['data'].length}"
-  response['data'].each_with_index do |item, index|
+  response["data"].each_with_index do |item, index|
     puts "Text #{index + 1} embedding dimension: #{item['embedding'].length}"
   end
 rescue MistralAI::APIError => e
@@ -54,4 +54,4 @@ rescue MistralAI::APIError => e
 rescue StandardError => e
   puts "Error: #{e.message}"
   puts e.backtrace
-end 
+end

@@ -23,17 +23,17 @@ module MistralAI
         body[:instructions] = instructions if instructions
         body[:description] = description if description
         body[:tools] = validate_and_format_tools(tools) if tools
-        
+
         # Add any additional options
         filtered_options = filter_agent_options(options)
         body.merge!(filtered_options)
 
         # Make the API request
         response_data = post(AGENTS_ENDPOINT, body: body)
-        
+
         # Return agent response
         Responses::Agent.new(response_data)
-      rescue => e
+      rescue StandardError => e
         handle_agent_error(e)
       end
 
@@ -45,42 +45,42 @@ module MistralAI
         }
 
         response_data = get(AGENTS_ENDPOINT, params: params)
-        
+
         # Return array of agents
         if response_data.is_a?(Array)
           response_data.map { |agent_data| Responses::Agent.new(agent_data) }
         else
           # Handle paginated response if needed
-          agents_data = response_data.dig("data") || response_data.dig("agents") || []
+          agents_data = response_data["data"] || response_data["agents"] || []
           agents_data.map { |agent_data| Responses::Agent.new(agent_data) }
         end
-      rescue => e
+      rescue StandardError => e
         handle_agent_error(e)
       end
 
       # Get a specific agent (renamed to avoid conflict with inherited get method)
       def retrieve(agent_id:)
         validate_agent_id(agent_id)
-        
+
         path = "#{AGENTS_ENDPOINT}/#{agent_id}"
         response_data = get(path)
-        
+
         Responses::Agent.new(response_data)
-      rescue => e
+      rescue StandardError => e
         handle_agent_error(e)
       end
 
       # Delete an agent
       def delete(agent_id:)
         validate_agent_id(agent_id)
-        
+
         path = "#{AGENTS_ENDPOINT}/#{agent_id}"
-        
+
         # Make DELETE request
         begin
-          response = http_client.delete(path)
+          http_client.delete(path)
           { success: true, message: "Agent deleted successfully" }
-        rescue => e
+        rescue StandardError => e
           handle_agent_error(e)
         end
       end
@@ -89,20 +89,16 @@ module MistralAI
 
       # Validate agent_id parameter
       def validate_agent_id(agent_id)
-        unless agent_id.is_a?(String)
-          raise ArgumentError, "agent_id must be a string"
-        end
-        
-        if agent_id.empty?
-          raise ArgumentError, "agent_id is required and cannot be empty"
-        end
+        raise ArgumentError, "agent_id must be a string" unless agent_id.is_a?(String)
+
+        return unless agent_id.empty?
+
+        raise ArgumentError, "agent_id is required and cannot be empty"
       end
 
       # Validate and format tools for agent creation
       def validate_and_format_tools(tools)
-        unless tools.is_a?(Array)
-          raise ArgumentError, "tools must be an array"
-        end
+        raise ArgumentError, "tools must be an array" unless tools.is_a?(Array)
 
         tools.each do |tool|
           case tool
@@ -129,32 +125,32 @@ module MistralAI
 
       # Validate tool hash format
       def validate_tool_hash(tool)
-        unless tool[:type] || tool["type"]
-          raise ArgumentError, "Tool must have a 'type' field"
-        end
+        raise ArgumentError, "Tool must have a 'type' field" unless tool[:type] || tool["type"]
 
         tool_type = tool[:type] || tool["type"]
-        valid_types = ["function", "web_search", "web_search_premium", "code_interpreter", "image_generation", "document_library"]
-        
+        valid_types = %w[function web_search web_search_premium code_interpreter image_generation
+                         document_library]
+
         unless valid_types.include?(tool_type)
           raise ArgumentError, "Invalid tool type: #{tool_type}. Valid types: #{valid_types.join(', ')}"
         end
 
         # If it's a function tool, validate the function structure
-        if tool_type == "function"
-          function = tool[:function] || tool["function"]
-          unless function && function.is_a?(Hash) && (function[:name] || function["name"])
-            raise ArgumentError, "Function tool must have a 'function' object with 'name'"
-          end
-        end
+        return unless tool_type == "function"
+
+        function = tool[:function] || tool["function"]
+        return if function && function.is_a?(Hash) && (function[:name] || function["name"])
+
+        raise ArgumentError, "Function tool must have a 'function' object with 'name'"
       end
 
       # Validate simple tool names
       def validate_simple_tool(tool)
-        valid_simple_tools = ["web_search", "web_search_premium", "code_interpreter", "image_generation", "document_library"]
-        unless valid_simple_tools.include?(tool)
-          raise ArgumentError, "Invalid simple tool: #{tool}. Valid tools: #{valid_simple_tools.join(', ')}"
-        end
+        valid_simple_tools = %w[web_search web_search_premium code_interpreter image_generation
+                                document_library]
+        return if valid_simple_tools.include?(tool)
+
+        raise ArgumentError, "Invalid simple tool: #{tool}. Valid tools: #{valid_simple_tools.join(', ')}"
       end
 
       # Filter and validate agent creation options
@@ -165,7 +161,7 @@ module MistralAI
         }
 
         filtered = {}
-        
+
         allowed_options.each do |option_key, api_key|
           if options.key?(option_key)
             value = options[option_key]
@@ -189,4 +185,4 @@ module MistralAI
       end
     end
   end
-end 
+end

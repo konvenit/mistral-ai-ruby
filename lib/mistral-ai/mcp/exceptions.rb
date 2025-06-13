@@ -7,21 +7,21 @@ module MistralAI
     # Base class for MCP-related exceptions
     class MCPException < MistralAI::Error
       def initialize(message = nil)
-        super(message)
+        super
       end
     end
 
     # Exception raised for authentication errors with an MCP server
     class MCPAuthException < MCPException
       def initialize(message = "Authentication error with MCP server")
-        super(message)
+        super
       end
     end
 
     # Exception raised when MCP server is not found or unreachable
     class MCPConnectionException < MCPException
       def initialize(message = "Unable to connect to MCP server")
-        super(message)
+        super
       end
     end
 
@@ -42,4 +42,4 @@ module MistralAI
       end
     end
   end
-end 
+end

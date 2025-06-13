@@ -72,13 +72,11 @@ module MistralAI
           send_request(initialize_request)
           response = read_response
 
-          if response["error"]
-            raise MCPException, "Failed to initialize MCP session: #{response['error']['message']}"
-          end
+          raise MCPException, "Failed to initialize MCP session: #{response['error']['message']}" if response["error"]
 
           @logger.info "STDIO MCP session initialized successfully"
           @initialized = true
-        rescue => e
+        rescue StandardError => e
           @logger.error "Failed to initialize STDIO MCP session: #{e.message}"
           close
           raise MCPConnectionException, "Failed to initialize STDIO MCP session: #{e.message}"
@@ -91,10 +89,10 @@ module MistralAI
 
         begin
           @stdin&.close
-          @stdout&.close  
+          @stdout&.close
           @stderr&.close
           @wait_thread&.kill if @wait_thread&.alive?
-        rescue => e
+        rescue StandardError => e
           @logger.warn "Error closing STDIO MCP session: #{e.message}"
         ensure
           @stdin = nil
@@ -134,7 +132,7 @@ module MistralAI
         @logger.debug "Sending STDIO request: #{json_data}"
         @stdin.puts(json_data)
         @stdin.flush
-      rescue => e
+      rescue StandardError => e
         @logger.error "Error sending STDIO request: #{e.message}"
         raise MCPConnectionException, "Failed to send request: #{e.message}"
       end
@@ -146,10 +144,10 @@ module MistralAI
         JSON.parse(line)
       rescue EOFError
         raise MCPConnectionException, "Connection closed by MCP server"
-      rescue JSON::ParserError => e
+      rescue JSON::ParserError
         @logger.error "Invalid JSON response: #{line}"
         raise MCPException, "Invalid JSON response from MCP server"
-      rescue => e
+      rescue StandardError => e
         @logger.error "Error reading STDIO response: #{e.message}"
         raise MCPConnectionException, "Failed to read response: #{e.message}"
       end
@@ -160,4 +158,4 @@ module MistralAI
       end
     end
   end
-end 
+end

@@ -35,15 +35,15 @@ RSpec.describe MistralAI::Tools do
       end
 
       it "validates function name format" do
-        expect {
+        expect do
           described_class.new(name: "invalid-name!", description: "Test")
-        }.to raise_error(ArgumentError, /Function name must be a valid identifier/)
+        end.to raise_error(ArgumentError, /Function name must be a valid identifier/)
       end
 
       it "validates function name is not empty" do
-        expect {
+        expect do
           described_class.new(name: "", description: "Test")
-        }.to raise_error(ArgumentError, /Function name cannot be nil or empty/)
+        end.to raise_error(ArgumentError, /Function name cannot be nil or empty/)
       end
     end
 
@@ -89,23 +89,23 @@ RSpec.describe MistralAI::Tools do
         choice = described_class.function("my_function")
         expect(choice.function?).to be true
         expect(choice.to_h).to eq({
-          type: "function",
-          function: { name: "my_function" }
-        })
+                                    type: "function",
+                                    function: { name: "my_function" }
+                                  })
       end
 
       it "validates function name is provided" do
-        expect {
+        expect do
           described_class.function("")
-        }.to raise_error(ArgumentError, /Function name required/)
+        end.to raise_error(ArgumentError, /Function name required/)
       end
     end
 
     describe "#initialize" do
       it "validates choice type" do
-        expect {
+        expect do
           described_class.new("invalid")
-        }.to raise_error(ArgumentError, /Invalid tool choice type/)
+        end.to raise_error(ArgumentError, /Invalid tool choice type/)
       end
     end
   end
@@ -142,10 +142,10 @@ RSpec.describe MistralAI::Tools do
 
       it "builds with enum parameters" do
         tool = described_class.function("format") do
-          string_parameter "output_format", enum: ["json", "xml", "csv"], required: true
+          string_parameter "output_format", enum: %w[json xml csv], required: true
         end
 
-        expect(tool.parameters[:properties]["output_format"][:enum]).to eq(["json", "xml", "csv"])
+        expect(tool.parameters[:properties]["output_format"][:enum]).to eq(%w[json xml csv])
       end
 
       it "builds with array parameters" do
@@ -175,17 +175,17 @@ RSpec.describe MistralAI::Tools do
       end
 
       it "validates required fields" do
-        expect {
+        expect do
           described_class.new(id: "", type: "function", function: {})
-        }.to raise_error(ArgumentError, /Tool call ID cannot be nil or empty/)
+        end.to raise_error(ArgumentError, /Tool call ID cannot be nil or empty/)
 
-        expect {
+        expect do
           described_class.new(id: "call_123", type: "", function: {})
-        }.to raise_error(ArgumentError, /Tool call type cannot be nil or empty/)
+        end.to raise_error(ArgumentError, /Tool call type cannot be nil or empty/)
 
-        expect {
+        expect do
           described_class.new(id: "call_123", type: "function", function: nil)
-        }.to raise_error(ArgumentError, /Tool call function cannot be nil/)
+        end.to raise_error(ArgumentError, /Tool call function cannot be nil/)
       end
     end
 
@@ -234,7 +234,7 @@ RSpec.describe MistralAI::Tools do
             function: { name: "test1" }
           },
           {
-            type: "function", 
+            type: "function",
             function: { name: "test2" }
           }
         ]
@@ -252,25 +252,25 @@ RSpec.describe MistralAI::Tools do
       end
 
       it "raises error for non-array" do
-        expect {
+        expect do
           described_class.validate_tools("not an array")
-        }.to raise_error(ArgumentError, /Tools must be an array/)
+        end.to raise_error(ArgumentError, /Tools must be an array/)
       end
 
       it "raises error for invalid tool format" do
-        tools = [{ type: "function" }]  # Missing function
+        tools = [{ type: "function" }] # Missing function
 
-        expect {
+        expect do
           described_class.validate_tools(tools)
-        }.to raise_error(ArgumentError, /must have 'type' and 'function'/)
+        end.to raise_error(ArgumentError, /must have 'type' and 'function'/)
       end
 
       it "raises error for invalid tool type" do
         tools = ["invalid tool"]
 
-        expect {
+        expect do
           described_class.validate_tools(tools)
-        }.to raise_error(ArgumentError, /Invalid tool type/)
+        end.to raise_error(ArgumentError, /Invalid tool type/)
       end
     end
 
@@ -335,4 +335,4 @@ RSpec.describe MistralAI::Tools do
       end
     end
   end
-end 
+end

@@ -21,12 +21,12 @@ class SimpleChatDemo
   def send_message(content)
     # Add user message
     @messages << { role: "user", content: content }
-    
+
     puts "💬 User: #{content}"
     print "🤖 Assistant: "
-    
+
     response_content = ""
-    
+
     # Stream the response
     @client.chat.stream(
       model: "mistral-small-latest",
@@ -39,14 +39,14 @@ class SimpleChatDemo
         response_content += chunk.content
       end
     end
-    
+
     puts "\n"
-    
+
     # Add assistant response to conversation
     @messages << { role: "assistant", content: response_content }
-    
+
     response_content
-  rescue => e
+  rescue StandardError => e
     puts "\n❌ Error: #{e.message}"
     # Remove failed user message
     @messages.pop
@@ -65,29 +65,31 @@ end
 # Demo usage
 if ENV["MISTRAL_API_KEY"] || ARGV[0]
   api_key = ENV["MISTRAL_API_KEY"] || ARGV[0]
-  
+
   puts "Using API key: #{api_key[0..7]}..." if api_key
   puts
 
   demo = SimpleChatDemo.new(api_key)
-  
+
   # Simulate a conversation
   demo.send_message("Hello! Can you introduce yourself?")
-  
+
   puts
   demo.send_message("What's 2 + 2?")
-  
+
   puts
   demo.send_message("Can you write a haiku about coding?")
-  
+
   puts
   puts "💾 Conversation History:"
   puts "-" * 25
   demo.conversation_history.each_with_index do |msg, i|
     role_emoji = msg[:role] == "user" ? "💬" : "🤖"
-    puts "#{i + 1}. #{role_emoji} #{msg[:role].capitalize}: #{msg[:content][0..100]}#{'...' if msg[:content].length > 100}"
+    puts "#{i + 1}. #{role_emoji} #{msg[:role].capitalize}: #{msg[:content][0..100]}#{if msg[:content].length > 100
+                                                                                        '...'
+                                                                                      end}"
   end
-  
+
 else
   puts "❌ Please provide an API key as argument or set MISTRAL_API_KEY environment variable"
   puts
@@ -97,4 +99,4 @@ else
   puts
   puts "For interactive chat, use:"
   puts "  ./bin/mistral-chat --api-key your-api-key"
-end 
+end

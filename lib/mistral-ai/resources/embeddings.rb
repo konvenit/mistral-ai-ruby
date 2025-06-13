@@ -1,4 +1,6 @@
-require_relative '../base_resource'
+# frozen_string_literal: true
+
+require_relative "../base_resource"
 
 module MistralAI
   module Resources
@@ -13,7 +15,7 @@ module MistralAI
           output_dtype: output_dtype
         }.compact
 
-        response = post('/v1/embeddings', body: request, **options)
+        response = post("/v1/embeddings", body: request, **options)
         handle_response(response)
       end
 
@@ -21,10 +23,11 @@ module MistralAI
 
       def handle_response(response)
         return response if response.is_a?(Hash)
+
         case response.code
-        when '200'
+        when "200"
           JSON.parse(response.body)
-        when '422'
+        when "422"
           raise APIError.new("Validation error", response.code, response.body)
         when /^[45]/
           raise APIError.new("API error occurred", response.code, response.body)
@@ -38,4 +41,4 @@ module MistralAI
       end
     end
   end
-end 
+end

@@ -18,7 +18,7 @@ module MistralAI
       # Parse a chunk of SSE data
       def parse(chunk)
         @buffer += chunk
-        
+
         # Process complete lines
         while @buffer.include?("\n")
           line, @buffer = @buffer.split("\n", 2)
@@ -37,19 +37,17 @@ module MistralAI
 
       def process_line(line)
         return if line.empty? || !line.start_with?(DATA_PREFIX)
-        
-        data = line[DATA_PREFIX.length..-1].strip
+
+        data = line[DATA_PREFIX.length..].strip
         return if data.empty?
-        
+
         # Check for stream termination
-        if data == DONE_MESSAGE
-          return
-        end
-        
+        return if data == DONE_MESSAGE
+
         begin
           json_data = JSON.parse(data)
           response = Responses::ChatStreamResponse.new(json_data)
-          @callback.call(response) if @callback
+          @callback&.call(response)
         rescue JSON::ParserError => e
           # Log error but continue processing
           warn "Failed to parse SSE data: #{e.message}" if $DEBUG
@@ -66,11 +64,11 @@ module MistralAI
       # Handle streaming request with callback
       def stream(path:, body:, &block)
         parser = SSEParser.new(&block)
-        
+
         response = @http_client.post(path, body: body, stream: true) do |chunk|
           parser.parse(chunk)
         end
-        
+
         parser.finish
         response
       end
@@ -88,7 +86,7 @@ module MistralAI
 
       def each(&block)
         return enum_for(:each) unless block
-        
+
         handler = StreamHandler.new(@http_client)
         handler.stream(path: @path, body: @body, &block)
       end
@@ -114,4 +112,4 @@ module MistralAI
       end
     end
   end
-end 
+end

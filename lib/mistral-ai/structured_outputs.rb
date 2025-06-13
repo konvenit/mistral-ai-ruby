@@ -99,31 +99,26 @@ module MistralAI
       def self.from_hash(data)
         # If data is an array, use the first element (common with API responses)
         if data.is_a?(Array)
-          if data.empty?
-            raise ValidationError, "Cannot create schema from empty array"
-          end
+          raise ValidationError, "Cannot create schema from empty array" if data.empty?
+
           data = data.first
         end
-        
+
         # Ensure we have a hash to work with
-        unless data.is_a?(Hash)
-          raise ValidationError, "Expected Hash or Array, got #{data.class}"
-        end
-        
+        raise ValidationError, "Expected Hash or Array, got #{data.class}" unless data.is_a?(Hash)
+
         instance = new
-        
-        (@properties || {}).each do |name, property_schema|
+
+        (@properties || {}).each_key do |name|
           # Check for key existence rather than truthiness to handle false values
           value = if data.key?(name.to_s)
                     data[name.to_s]
                   elsif data.key?(name.to_sym)
                     data[name.to_sym]
-                  else
-                    nil
                   end
-          
+
           instance.instance_variable_set("@#{name}", value)
-          
+
           # Define getter method
           instance.define_singleton_method(name) { value }
         end
@@ -138,12 +133,10 @@ module MistralAI
 
       def validate!
         @errors = []
-        
+
         (self.class.instance_variable_get(:@required_fields) || []).each do |field|
           value = instance_variable_get("@#{field}")
-          if value.nil?
-            @errors << "Required field '#{field}' is missing"
-          end
+          @errors << "Required field '#{field}' is missing" if value.nil?
         end
 
         raise ValidationError, @errors.join(", ") unless @errors.empty?
@@ -151,7 +144,7 @@ module MistralAI
 
       def to_h
         hash = {}
-        (self.class.instance_variable_get(:@properties) || {}).each do |name, _|
+        (self.class.instance_variable_get(:@properties) || {}).each_key do |name|
           value = instance_variable_get("@#{name}")
           hash[name] = value unless value.nil?
         end
@@ -163,12 +156,10 @@ module MistralAI
       end
 
       def valid?
-        begin
-          validate!
-          true
-        rescue ValidationError
-          false
-        end
+        validate!
+        true
+      rescue ValidationError
+        false
       end
 
       def errors
@@ -287,10 +278,8 @@ module MistralAI
         raise ValidationError, "Invalid JSON: #{e.message}"
       end
 
-      private
-
       def self.map_object(data, schema_class)
-        if schema_class && schema_class.respond_to?(:from_hash)
+        if schema_class.respond_to?(:from_hash)
           schema_class.from_hash(data)
         else
           StructuredObject.new(data)
@@ -302,23 +291,23 @@ module MistralAI
     class StructuredObject
       def initialize(data)
         @data = data.is_a?(Hash) ? data : {}
-        
+
         @data.each do |key, value|
           # Convert nested hashes to structured objects
           processed_value = case value
-                          when Hash
-                            StructuredObject.new(value)
-                          when Array
-                            value.map { |item| item.is_a?(Hash) ? StructuredObject.new(item) : item }
-                          else
-                            value
-                          end
+                            when Hash
+                              StructuredObject.new(value)
+                            when Array
+                              value.map { |item| item.is_a?(Hash) ? StructuredObject.new(item) : item }
+                            else
+                              value
+                            end
 
           instance_variable_set("@#{key}", processed_value)
-          
+
           # Define getter method
           define_singleton_method(key) { processed_value }
-          
+
           # Define question method for boolean-like access
           define_singleton_method("#{key}?") { !!processed_value } if [true, false].include?(processed_value)
         end
@@ -363,16 +352,16 @@ module MistralAI
       end
 
       def respond_to_missing?(method_name, include_private = false)
-        key = method_name.to_s.chomp('?')
+        key = method_name.to_s.chomp("?")
         @data.key?(key) || @data.key?(key.to_sym) || super
       end
 
       def method_missing(method_name, *args)
-        key = method_name.to_s.chomp('?')
-        
+        key = method_name.to_s.chomp("?")
+
         if @data.key?(key) || @data.key?(key.to_sym)
           value = @data[key] || @data[key.to_sym]
-          method_name.to_s.end_with?('?') ? !!value : value
+          method_name.to_s.end_with?("?") ? !value.nil? : value
         else
           super
         end
@@ -393,20 +382,16 @@ module MistralAI
       # Validate data against a schema
       def self.validate_data(data, schema)
         errors = []
-        
-        if schema[:required]
-          schema[:required].each do |field|
-            unless data.key?(field.to_s) || data.key?(field.to_sym)
-              errors << "Required field '#{field}' is missing"
-            end
-          end
+
+        schema[:required]&.each do |field|
+          errors << "Required field '#{field}' is missing" unless data.key?(field.to_s) || data.key?(field.to_sym)
         end
 
         if schema[:properties]
           data.each do |key, value|
             property_schema = schema[:properties][key.to_sym] || schema[:properties][key.to_s]
             next unless property_schema
-            
+
             validate_property(key, value, property_schema, errors)
           end
         end
@@ -417,53 +402,53 @@ module MistralAI
       # Validate a single property
       def self.validate_property(key, value, property_schema, errors)
         type = property_schema[:type]
-        
+
         case type
         when "string"
           errors << "Property '#{key}' must be a string" unless value.is_a?(String)
-          
+
           if property_schema[:enum] && !property_schema[:enum].include?(value)
             errors << "Property '#{key}' must be one of: #{property_schema[:enum].join(', ')}"
           end
-          
-          if property_schema[:pattern] && !(value =~ Regexp.new(property_schema[:pattern]))
+
+          if property_schema[:pattern] && value !~ Regexp.new(property_schema[:pattern])
             errors << "Property '#{key}' does not match pattern #{property_schema[:pattern]}"
           end
-          
+
         when "number"
           unless value.is_a?(Numeric)
             errors << "Property '#{key}' must be a number"
             return # Skip constraint checks if type is wrong
           end
-          
+
           if property_schema[:minimum] && value < property_schema[:minimum]
             errors << "Property '#{key}' must be >= #{property_schema[:minimum]}"
           end
-          
+
           if property_schema[:maximum] && value > property_schema[:maximum]
             errors << "Property '#{key}' must be <= #{property_schema[:maximum]}"
           end
-          
+
         when "integer"
           unless value.is_a?(Integer)
             errors << "Property '#{key}' must be an integer"
             return # Skip constraint checks if type is wrong
           end
-          
+
           if property_schema[:minimum] && value < property_schema[:minimum]
             errors << "Property '#{key}' must be >= #{property_schema[:minimum]}"
           end
-          
+
           if property_schema[:maximum] && value > property_schema[:maximum]
             errors << "Property '#{key}' must be <= #{property_schema[:maximum]}"
           end
-          
+
         when "boolean"
           errors << "Property '#{key}' must be a boolean" unless [true, false].include?(value)
-          
+
         when "array"
           errors << "Property '#{key}' must be an array" unless value.is_a?(Array)
-          
+
         when "object"
           errors << "Property '#{key}' must be an object" unless value.is_a?(Hash)
         end
@@ -478,4 +463,4 @@ module MistralAI
       end
     end
   end
-end 
+end

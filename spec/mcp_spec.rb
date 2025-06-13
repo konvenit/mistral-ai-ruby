@@ -9,7 +9,7 @@ RSpec.describe MistralAI::MCP do
     end
 
     it "defines MCP module constants" do
-      expect(MistralAI::MCP).to be_a(Module)
+      expect(described_class).to be_a(Module)
       expect(MistralAI::MCP::VERSION).to be_a(String)
     end
   end
@@ -153,4 +153,4 @@ RSpec.describe MistralAI::MCP do
       expect(token[:access_token]).to eq("test_token")
     end
   end
-end 
+end

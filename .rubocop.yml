@@ -46,3 +46,6 @@ Layout/EmptyLinesAroundClassBody:
 # Allow empty lines around module body
 Layout/EmptyLinesAroundModuleBody:
   Enabled: false 
+
+Capybara/RSpec/PredicateMatcher:
+  Enabled: false

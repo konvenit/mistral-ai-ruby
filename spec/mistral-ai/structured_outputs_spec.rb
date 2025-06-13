@@ -8,7 +8,7 @@ RSpec.describe MistralAI::StructuredOutputs do
       Class.new(described_class) do
         title "Test Schema"
         description "A test schema"
-        
+
         string_property :name, description: "Name", required: true
         integer_property :age, description: "Age", minimum: 0, maximum: 150
         boolean_property :active, description: "Active status"
@@ -25,7 +25,7 @@ RSpec.describe MistralAI::StructuredOutputs do
         expect(schema[:description]).to eq("A test schema")
         expect(schema[:additionalProperties]).to be false
         expect(schema[:required]).to include(:name)
-        
+
         properties = schema[:properties]
         expect(properties[:name][:type]).to eq("string")
         expect(properties[:age][:type]).to eq("integer")
@@ -38,7 +38,7 @@ RSpec.describe MistralAI::StructuredOutputs do
 
       it "generates response format" do
         format = test_schema_class.response_format
-        
+
         expect(format[:type]).to eq("json_object")
         expect(format[:schema]).to be_a(Hash)
         expect(format[:schema][:type]).to eq("object")
@@ -51,7 +51,7 @@ RSpec.describe MistralAI::StructuredOutputs do
         expect(instance.name).to eq("John")
         expect(instance.age).to eq(30)
         expect(instance.active).to be true
-        expect(instance.tags).to eq(["user", "admin"])
+        expect(instance.tags).to eq(%w[user admin])
       end
 
       it "creates instance from hash" do
@@ -84,7 +84,7 @@ RSpec.describe MistralAI::StructuredOutputs do
 
       it "validates required fields" do
         expect { instance.validate! }.not_to raise_error
-        
+
         instance.instance_variable_set(:@name, nil)
         expect { instance.validate! }.to raise_error(MistralAI::StructuredOutputs::ValidationError)
       end
@@ -106,7 +106,7 @@ RSpec.describe MistralAI::StructuredOutputs do
 
       it "checks validity" do
         expect(instance.valid?).to be true
-        
+
         instance.instance_variable_set(:@name, nil)
         expect(instance.valid?).to be false
       end
@@ -117,18 +117,18 @@ RSpec.describe MistralAI::StructuredOutputs do
     describe "#build" do
       it "builds a basic schema" do
         schema = described_class.new
-          .title("User Schema")
-          .description("Schema for user data")
-          .string_property(:username, description: "Username", required: true)
-          .integer_property(:score, description: "User score", minimum: 0)
-          .build
+                                .title("User Schema")
+                                .description("Schema for user data")
+                                .string_property(:username, description: "Username", required: true)
+                                .integer_property(:score, description: "User score", minimum: 0)
+                                .build
 
         expect(schema[:type]).to eq("object")
         expect(schema[:title]).to eq("User Schema")
         expect(schema[:description]).to eq("Schema for user data")
         expect(schema[:additionalProperties]).to be false
         expect(schema[:required]).to include(:username)
-        
+
         properties = schema[:properties]
         expect(properties[:username][:type]).to eq("string")
         expect(properties[:score][:type]).to eq("integer")
@@ -137,16 +137,16 @@ RSpec.describe MistralAI::StructuredOutputs do
 
       it "builds schema with enum properties" do
         schema = described_class.new
-          .string_property(:status, enum: ["active", "inactive"], required: true)
-          .build
+                                .string_property(:status, enum: %w[active inactive], required: true)
+                                .build
 
-        expect(schema[:properties][:status][:enum]).to eq(["active", "inactive"])
+        expect(schema[:properties][:status][:enum]).to eq(%w[active inactive])
       end
 
       it "builds schema with array properties" do
         schema = described_class.new
-          .array_property(:items, items: { type: "string" }, required: true)
-          .build
+                                .array_property(:items, items: { type: "string" }, required: true)
+                                .build
 
         expect(schema[:properties][:items][:type]).to eq("array")
         expect(schema[:properties][:items][:items]).to eq({ type: "string" })
@@ -154,11 +154,11 @@ RSpec.describe MistralAI::StructuredOutputs do
 
       it "builds schema with object properties" do
         schema = described_class.new
-          .object_property(:address, properties: {
-            street: { type: "string" },
-            city: { type: "string" }
-          })
-          .build
+                                .object_property(:address, properties: {
+                                                   street: { type: "string" },
+                                                   city: { type: "string" }
+                                                 })
+                                .build
 
         expect(schema[:properties][:address][:type]).to eq("object")
         expect(schema[:properties][:address][:properties][:street][:type]).to eq("string")
@@ -166,8 +166,8 @@ RSpec.describe MistralAI::StructuredOutputs do
 
       it "sets additional properties" do
         schema = described_class.new
-          .additional_properties(true)
-          .build
+                                .additional_properties(true)
+                                .build
 
         expect(schema[:additionalProperties]).to be true
       end
@@ -226,7 +226,7 @@ RSpec.describe MistralAI::StructuredOutputs do
         end
 
         allow(schema_class).to receive(:from_hash).and_return("mapped_object")
-        
+
         hash = { "name" => "John", "age" => 30 }
         result = described_class.map(hash, schema_class)
 
@@ -235,9 +235,9 @@ RSpec.describe MistralAI::StructuredOutputs do
       end
 
       it "raises error for invalid JSON" do
-        expect {
+        expect do
           described_class.map("invalid json")
-        }.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Invalid JSON/)
+        end.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Invalid JSON/)
       end
     end
   end
@@ -377,16 +377,16 @@ RSpec.describe MistralAI::StructuredOutputs do
       end
 
       it "raises error for invalid JSON" do
-        expect {
+        expect do
           described_class.validate_json("invalid json", schema)
-        }.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Invalid JSON/)
+        end.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Invalid JSON/)
       end
 
       it "raises error for missing required fields" do
         json = '{"age": 30}'
-        expect {
+        expect do
           described_class.validate_json(json, schema)
-        }.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Required field 'name' is missing/)
+        end.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Required field 'name' is missing/)
       end
     end
 
@@ -398,13 +398,13 @@ RSpec.describe MistralAI::StructuredOutputs do
             name: { type: "string" },
             age: { type: "integer", minimum: 18, maximum: 100 },
             email: { type: "string", pattern: "^[\\w\\.-]+@[\\w\\.-]+\\.[a-zA-Z]{2,}$" },
-            status: { type: "string", enum: ["active", "inactive"] },
+            status: { type: "string", enum: %w[active inactive] },
             score: { type: "number", minimum: 0.0, maximum: 100.0 },
             verified: { type: "boolean" },
             tags: { type: "array" },
             meta: { type: "object" }
           },
-          required: ["name", "age"]
+          required: %w[name age]
         }
       end
 
@@ -425,79 +425,79 @@ RSpec.describe MistralAI::StructuredOutputs do
 
       it "validates required fields" do
         data = { "age" => 30 }
-        expect {
+        expect do
           described_class.validate_data(data, schema)
-        }.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Required field 'name' is missing/)
+        end.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Required field 'name' is missing/)
       end
 
       it "validates string type" do
         data = { "name" => 123, "age" => 30 }
-        expect {
+        expect do
           described_class.validate_data(data, schema)
-        }.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'name' must be a string/)
+        end.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'name' must be a string/)
       end
 
       it "validates integer type" do
         data = { "name" => "John", "age" => "thirty" }
-        expect {
+        expect do
           described_class.validate_data(data, schema)
-        }.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'age' must be an integer/)
+        end.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'age' must be an integer/)
       end
 
       it "validates number type" do
         data = { "name" => "John", "age" => 30, "score" => "invalid" }
-        expect {
+        expect do
           described_class.validate_data(data, schema)
-        }.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'score' must be a number/)
+        end.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'score' must be a number/)
       end
 
       it "validates boolean type" do
         data = { "name" => "John", "age" => 30, "verified" => "yes" }
-        expect {
+        expect do
           described_class.validate_data(data, schema)
-        }.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'verified' must be a boolean/)
+        end.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'verified' must be a boolean/)
       end
 
       it "validates array type" do
         data = { "name" => "John", "age" => 30, "tags" => "tag1,tag2" }
-        expect {
+        expect do
           described_class.validate_data(data, schema)
-        }.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'tags' must be an array/)
+        end.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'tags' must be an array/)
       end
 
       it "validates object type" do
         data = { "name" => "John", "age" => 30, "meta" => "string" }
-        expect {
+        expect do
           described_class.validate_data(data, schema)
-        }.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'meta' must be an object/)
+        end.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'meta' must be an object/)
       end
 
       it "validates minimum constraints" do
         data = { "name" => "John", "age" => 15 }
-        expect {
+        expect do
           described_class.validate_data(data, schema)
-        }.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'age' must be >= 18/)
+        end.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'age' must be >= 18/)
       end
 
       it "validates maximum constraints" do
         data = { "name" => "John", "age" => 150 }
-        expect {
+        expect do
           described_class.validate_data(data, schema)
-        }.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'age' must be <= 100/)
+        end.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'age' must be <= 100/)
       end
 
       it "validates enum constraints" do
         data = { "name" => "John", "age" => 30, "status" => "unknown" }
-        expect {
+        expect do
           described_class.validate_data(data, schema)
-        }.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'status' must be one of: active, inactive/)
+        end.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'status' must be one of: active, inactive/)
       end
 
       it "validates pattern constraints" do
         data = { "name" => "John", "age" => 30, "email" => "invalid-email" }
-        expect {
+        expect do
           described_class.validate_data(data, schema)
-        }.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'email' does not match pattern/)
+        end.to raise_error(MistralAI::StructuredOutputs::ValidationError, /Property 'email' does not match pattern/)
       end
     end
 
@@ -511,4 +511,4 @@ RSpec.describe MistralAI::StructuredOutputs do
       end
     end
   end
-end 
+end

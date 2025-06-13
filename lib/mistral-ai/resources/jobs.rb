@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require_relative '../base_resource'
+require_relative "../base_resource"
 
 module MistralAI
   module Resources
     class Jobs < BaseResource
       def list(**options)
-        response = get('/v1/fine-tuning/jobs', **options)
+        response = get("/v1/fine-tuning/jobs", **options)
         handle_response(response)
       end
 
@@ -17,7 +17,7 @@ module MistralAI
           hyperparameters: hyperparameters
         }.compact
 
-        response = post('/v1/fine-tuning/jobs', body: request, **options)
+        response = post("/v1/fine-tuning/jobs", body: request, **options)
         handle_response(response)
       end
 
@@ -35,11 +35,12 @@ module MistralAI
 
       def handle_response(response)
         return response if response.is_a?(Hash)
+
         case response.code
-        when '200'
+        when "200"
           JSON.parse(response.body)
-        when '422'
-          raise ValidationError.new(JSON.parse(response.body))
+        when "422"
+          raise ValidationError, JSON.parse(response.body)
         when /^[45]/
           raise APIError.new("API error occurred", response.code, response.body)
         else
@@ -52,4 +53,4 @@ module MistralAI
       end
     end
   end
-end 
+end

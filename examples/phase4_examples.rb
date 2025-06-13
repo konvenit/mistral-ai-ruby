@@ -15,37 +15,36 @@ require "mistral-ai"
 
 # Configure the client
 # Make sure to set MISTRAL_API_KEY environment variable
-api_key = ENV['MISTRAL_API_KEY']
+api_key = ENV.fetch("MISTRAL_API_KEY", nil)
 if api_key.nil? || api_key.empty?
   puts "⚠️  Warning: MISTRAL_API_KEY environment variable not set."
   puts "   The API examples will fail, but local validation examples will still work."
   puts "   To test API calls, set your API key: export MISTRAL_API_KEY='your-api-key'"
   puts "   Or create a .env file with: MISTRAL_API_KEY=your-api-key"
-  puts
 else
   puts "✓ API key loaded successfully"
-  puts
 end
+puts
 
 client = api_key ? MistralAI::Client.new(api_key: api_key) : nil
 
 puts "=== Phase 4: Advanced Features Examples ==="
 puts
 
-def safe_api_call(title, client = nil, &block)
-  puts "#{title}"
+def safe_api_call(title, client = nil)
+  puts title
   puts "-" * title.length
   if client.nil?
     puts "⚠️  Skipped: No API key provided"
     puts
     return nil
   end
-  
+
   begin
     result = yield
     puts "✓ Success: #{result}"
     result
-  rescue => e
+  rescue StandardError => e
     puts "Error: #{e.message}"
     nil
   end
@@ -72,7 +71,7 @@ weather_tool = MistralAI::Tools::FunctionTool.new(
       },
       unit: {
         type: "string",
-        enum: ["celsius", "fahrenheit"],
+        enum: %w[celsius fahrenheit],
         description: "Temperature unit"
       }
     },
@@ -89,7 +88,7 @@ safe_api_call("1. Tool Calling - Weather Function", client) do
     tools: [weather_tool],
     tool_choice: MistralAI::Tools::ToolChoice.auto
   )
-  
+
   if response.has_tool_calls?
     tool_calls = response.extract_tool_calls
     first_call = tool_calls.first
@@ -121,7 +120,7 @@ calculator_tool = MistralAI::Tools::FunctionTool.new(
       },
       format: {
         type: "string",
-        enum: ["decimal", "fraction"],
+        enum: %w[decimal fraction],
         description: "Output format"
       }
     },
@@ -141,7 +140,7 @@ date_tool = MistralAI::Tools::FunctionTool.new(
       },
       format: {
         type: "string",
-        enum: ["iso", "human", "timestamp"],
+        enum: %w[iso human timestamp],
         description: "Date format"
       }
     },
@@ -157,7 +156,7 @@ safe_api_call("2. Tool Calling - Multiple Tools with Complex Parameters", client
     ],
     tools: [calculator_tool, date_tool]
   )
-  
+
   if response.has_tool_calls?
     tool_calls = response.extract_tool_calls
     "Found #{tool_calls.length} tool calls"
@@ -180,15 +179,15 @@ safe_api_call("3. Tool Calling - Conversation with Tool Results", client) do
     ],
     tools: [weather_tool]
   )
-  
+
   if response.has_tool_calls?
     # Simulate tool execution
     tool_calls = response.extract_tool_calls
     first_call = tool_calls.first
-    
+
     if first_call
       tool_result = { temperature: 18, condition: "cloudy", humidity: 75 }.to_json
-      
+
       # Continue conversation with tool result
       messages = [
         { role: "user", content: "What's the weather in London?" },
@@ -198,12 +197,12 @@ safe_api_call("3. Tool Calling - Conversation with Tool Results", client) do
           content: tool_result
         ).to_h
       ]
-      
-      final_response = client.chat.complete(
+
+      client.chat.complete(
         model: "mistral-small-latest",
         messages: messages
       )
-      
+
       "Conversation completed with tool result"
     else
       "Tool calls found but could not extract them"
@@ -214,7 +213,7 @@ safe_api_call("3. Tool Calling - Conversation with Tool Results", client) do
 end
 
 # ============================================================================
-# STRUCTURED OUTPUTS EXAMPLES  
+# STRUCTURED OUTPUTS EXAMPLES
 # ============================================================================
 
 puts "4. Structured Outputs - Using Schema Classes"
@@ -224,7 +223,7 @@ puts "-" * 45
 class PersonSchema < MistralAI::StructuredOutputs::BaseSchema
   title "Person Information"
   description "Schema for person data"
-  
+
   string_property :name, description: "Full name", required: true
   integer_property :age, description: "Age in years", required: true, minimum: 0, maximum: 150
   string_property :email, description: "Email address"
@@ -240,7 +239,7 @@ safe_api_call("4. Structured Outputs - Using Schema Classes", client) do
     ],
     response_format: { type: "json_object" }
   )
-  
+
   if response.content
     structured = response.structured_content(PersonSchema)
     if structured.respond_to?(:name) && structured.respond_to?(:age)
@@ -260,25 +259,26 @@ puts "-" * 48
 
 # Build schema dynamically
 safe_api_call("5. Structured Outputs - Dynamic Schema Builder", client) do
-  schema = MistralAI::StructuredOutputs::SchemaBuilder.new
-    .title("Product Information")
-    .description("Schema for product data")
-    .string_property("name", required: true)
-    .number_property("price", minimum: 0)
-    .string_property("category", enum: ["electronics", "clothing", "books"])
-    .boolean_property("in_stock")
-    .build
-  
+  MistralAI::StructuredOutputs::SchemaBuilder.new
+                                             .title("Product Information")
+                                             .description("Schema for product data")
+                                             .string_property("name", required: true)
+                                             .number_property("price", minimum: 0)
+                                             .string_property("category", enum: %w[electronics clothing books])
+                                             .boolean_property("in_stock")
+                                             .build
+
   response = client.chat.complete(
     model: "mistral-small-latest",
     messages: [
-      { role: "user", content: "Create a product for a laptop as JSON with name, price, category (electronics), and stock status" }
+      { role: "user",
+        content: "Create a product for a laptop as JSON with name, price, category (electronics), and stock status" }
     ],
     response_format: { type: "json_object" }
   )
-  
+
   if response.content
-    structured = response.structured_content
+    response.structured_content
     "Generated product schema response"
   else
     "No structured content received"
@@ -296,12 +296,12 @@ safe_api_call("6. Structured Outputs - Validation and Error Handling", client) d
   schema = {
     type: "object",
     properties: {
-      email: { type: "string", pattern: "^[^@]+@[^@]+\.[^@]+$" },
+      email: { type: "string", pattern: "^[^@]+@[^@]+.[^@]+$" },
       score: { type: "integer", minimum: 0, maximum: 100 }
     },
-    required: ["email", "score"]
+    required: %w[email score]
   }
-  
+
   # Simulate a response with JSON content
   mock_data = {
     "id" => "test-123",
@@ -314,9 +314,9 @@ safe_api_call("6. Structured Outputs - Validation and Error Handling", client) d
       "finish_reason" => "stop"
     }]
   }
-  
+
   response = MistralAI::Responses::ChatResponse.new(mock_data)
-  
+
   if response.validate_schema(schema)
     "Schema validation passed"
   else
@@ -344,22 +344,23 @@ safe_api_call("7. Combined Example - Tool Calling with Structured Outputs", clie
         },
         analysis_type: {
           type: "string",
-          enum: ["statistical", "sentiment", "trend"],
+          enum: %w[statistical sentiment trend],
           description: "Type of analysis"
         }
       },
       required: ["data"]
     }
   )
-  
+
   response = client.chat.complete(
     model: "mistral-small-latest",
     messages: [
-      { role: "user", content: "Analyze the sentiment of 'I love this product' and return JSON with sentiment, confidence, and reasoning" }
+      { role: "user",
+        content: "Analyze the sentiment of 'I love this product' and return JSON with sentiment, confidence, and reasoning" }
     ],
     tools: [analysis_tool]
   )
-  
+
   if response.has_tool_calls?
     "Tool calling with structured output configured"
   else
@@ -381,12 +382,12 @@ end
 
 # Test schema building
 schema = MistralAI::StructuredOutputs::SchemaBuilder.new
-  .string_property("test", enum: [])
-  .build
+                                                    .string_property("test", enum: [])
+                                                    .build
 
 puts "Schema created: #{schema}"
 
-# Test tool choice validation  
+# Test tool choice validation
 begin
   MistralAI::Tools::ToolChoice.function("")
 rescue ArgumentError => e
@@ -403,4 +404,4 @@ puts "- Structured outputs with JSON Schema"
 puts "- Ruby object mapping"
 puts "- Schema validation"
 puts "- Error handling and validation"
-puts "- Combined tool calling and structured outputs" 
+puts "- Combined tool calling and structured outputs"

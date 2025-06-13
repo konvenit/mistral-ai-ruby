@@ -48,9 +48,9 @@ Gem::Specification.new do |spec|
 
   # For better JSON performance (optional)
   spec.add_development_dependency "oj", "~> 3.13"
-  
+
   # For SSE MCP example
   spec.add_development_dependency "webrick", "~> 1.7"
-  
+
   spec.metadata["rubygems_mfa_required"] = "true"
 end

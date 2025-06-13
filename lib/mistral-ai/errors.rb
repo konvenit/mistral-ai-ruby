@@ -22,12 +22,18 @@ module MistralAI
   class ValidationError < APIError; end
 
   # Specific API error types
-  class AuthenticationError < APIError; end # 401
-  class PermissionError < APIError; end     # 403
-  class NotFoundError < APIError; end       # 404
-  class RateLimitError < APIError; end      # 429
-  class ServerError < APIError; end         # 5xx
-  class BadRequestError < APIError; end     # 400
+  # 401
+  class AuthenticationError < APIError; end
+  # 403
+  class PermissionError < APIError; end
+  # 404
+  class NotFoundError < APIError; end
+  # 429
+  class RateLimitError < APIError; end
+  # 5xx
+  class ServerError < APIError; end
+  # 400
+  class BadRequestError < APIError; end
 
   # Network and connection errors
   class NetworkError < Error; end

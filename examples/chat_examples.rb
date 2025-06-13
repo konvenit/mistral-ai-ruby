@@ -32,7 +32,7 @@ begin
   puts "Model: #{response.model}"
   puts "Usage: #{response.usage.total_tokens} tokens"
   puts
-rescue => e
+rescue StandardError => e
   puts "Error: #{e.message}"
   puts
 end
@@ -50,7 +50,7 @@ begin
   ]
 
   response = client.chat.complete(
-    model: "mistral-small-latest", 
+    model: "mistral-small-latest",
     messages: messages,
     temperature: 0.7,
     max_tokens: 150
@@ -58,7 +58,7 @@ begin
 
   puts "Pirate Assistant: #{response.content}"
   puts
-rescue => e
+rescue StandardError => e
   puts "Error: #{e.message}"
   puts
 end
@@ -84,7 +84,7 @@ begin
   puts "Response: #{response.content}"
   puts "Finish reason: #{response.finish_reason}"
   puts
-rescue => e
+rescue StandardError => e
   puts "Error: #{e.message}"
   puts
 end
@@ -98,7 +98,7 @@ begin
   system_msg = MistralAI::Messages::SystemMessage.new(
     content: "You are a knowledgeable science teacher."
   )
-  
+
   user_msg = MistralAI::Messages::UserMessage.new(
     content: "What is photosynthesis?"
   )
@@ -111,7 +111,7 @@ begin
 
   puts "Teacher Response: #{response.content}"
   puts
-rescue => e
+rescue StandardError => e
   puts "Error: #{e.message}"
   puts
 end
@@ -122,7 +122,7 @@ puts "-" * 30
 
 begin
   print "Streaming response: "
-  
+
   client.chat.stream(
     model: "mistral-small-latest",
     messages: [
@@ -135,9 +135,9 @@ begin
       $stdout.flush
     end
   end
-  
+
   puts "\n\n"
-rescue => e
+rescue StandardError => e
   puts "Error: #{e.message}"
   puts
 end
@@ -157,13 +157,13 @@ begin
   # Collect all chunks
   chunks = stream.to_a
   puts "Received #{chunks.length} chunks"
-  
+
   # Get content from chunks that have it
-  content_chunks = chunks.select { |chunk| chunk.content }
+  content_chunks = chunks.select(&:content)
   full_content = content_chunks.map(&:content).join
   puts "Full response: #{full_content}"
   puts
-rescue => e
+rescue StandardError => e
   puts "Error: #{e.message}"
   puts
 end
@@ -176,9 +176,9 @@ begin
   response = client.chat.complete(
     model: "mistral-small-latest",
     messages: [
-      { 
-        role: "user", 
-        content: "Generate a JSON object with name, age, and city for a fictional character." 
+      {
+        role: "user",
+        content: "Generate a JSON object with name, age, and city for a fictional character."
       }
     ],
     response_format: { type: "json_object" },
@@ -187,7 +187,7 @@ begin
 
   puts "JSON Response: #{response.content}"
   puts
-rescue => e
+rescue StandardError => e
   puts "Error: #{e.message}"
   puts
 end
@@ -198,19 +198,19 @@ puts "-" * 28
 
 begin
   # This should fail with invalid content
-  response = client.chat.complete(
+  client.chat.complete(
     model: "mistral-small-latest",
     messages: [
-      { role: "user", content: "" }  # Empty content
+      { role: "user", content: "" } # Empty content
     ]
   )
 rescue ArgumentError => e
   puts "Validation Error: #{e.message}"
 rescue MistralAI::APIError => e
   puts "API Error: #{e.message}"
-rescue => e
+rescue StandardError => e
   puts "Unexpected Error: #{e.message}"
 end
 
 puts
-puts "=== Phase 2 Examples Complete ===" 
+puts "=== Phase 2 Examples Complete ==="

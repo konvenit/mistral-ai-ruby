@@ -13,7 +13,7 @@ RSpec.describe MistralAI::Resources::Chat do
       {
         "id" => "chatcmpl-123",
         "object" => "chat.completion",
-        "created" => 1677652288,
+        "created" => 1_677_652_288,
         "model" => "mistral-small-latest",
         "choices" => [
           {
@@ -73,49 +73,49 @@ RSpec.describe MistralAI::Resources::Chat do
           description: "Test function"
         )
 
-        expect {
+        expect do
           chat_resource.complete(
             model: "mistral-small-latest",
             messages: [{ role: "user", content: "Test" }],
             tools: [tool_obj]
           )
-        }.not_to raise_error
+        end.not_to raise_error
       end
 
       it "accepts tool choice objects" do
         tool_choice = MistralAI::Tools::ToolChoice.auto
 
-        expect {
+        expect do
           chat_resource.complete(
             model: "mistral-small-latest",
             messages: [{ role: "user", content: "Test" }],
             tools: [weather_tool],
             tool_choice: tool_choice
           )
-        }.not_to raise_error
+        end.not_to raise_error
       end
 
       it "validates tool format" do
-        invalid_tools = [{ type: "function" }]  # Missing function
+        invalid_tools = [{ type: "function" }] # Missing function
 
-        expect {
+        expect do
           chat_resource.complete(
             model: "mistral-small-latest",
             messages: [{ role: "user", content: "Test" }],
             tools: invalid_tools
           )
-        }.to raise_error(ArgumentError, /Tool at index 0 must have 'type' and 'function' keys/)
+        end.to raise_error(ArgumentError, /Tool at index 0 must have 'type' and 'function' keys/)
       end
 
       it "validates tool choice format" do
-        expect {
+        expect do
           chat_resource.complete(
             model: "mistral-small-latest",
             messages: [{ role: "user", content: "Test" }],
             tools: [weather_tool],
             tool_choice: "invalid_choice"
           )
-        }.to raise_error(ArgumentError, /tool_choice must be/)
+        end.to raise_error(ArgumentError, /tool_choice must be/)
       end
     end
 
@@ -133,7 +133,7 @@ RSpec.describe MistralAI::Resources::Chat do
       end
 
       it "accepts response format with schema" do
-        expect {
+        expect do
           chat_resource.complete(
             model: "mistral-small-latest",
             messages: [{ role: "user", content: "Generate user data" }],
@@ -142,17 +142,17 @@ RSpec.describe MistralAI::Resources::Chat do
               schema: json_schema
             }
           )
-        }.not_to raise_error
+        end.not_to raise_error
       end
 
       it "validates response format structure" do
-        expect {
+        expect do
           chat_resource.complete(
             model: "mistral-small-latest",
             messages: [{ role: "user", content: "Test" }],
             response_format: { type: "invalid_type" }
           )
-        }.to raise_error(ArgumentError, /response_format type must be one of/)
+        end.to raise_error(ArgumentError, /response_format type must be one of/)
       end
 
       it "accepts schema class response format" do
@@ -160,21 +160,21 @@ RSpec.describe MistralAI::Resources::Chat do
           string_property :name, required: true
         end
 
-        expect {
+        expect do
           chat_resource.complete(
             model: "mistral-small-latest",
             messages: [{ role: "user", content: "Test" }],
             response_format: schema_class.response_format
           )
-        }.not_to raise_error
+        end.not_to raise_error
       end
     end
 
     describe "parameter validation" do
       it "validates required parameters" do
-        expect {
+        expect do
           chat_resource.complete(messages: [{ role: "user", content: "Hello" }])
-        }.to raise_error(ArgumentError)
+        end.to raise_error(ArgumentError)
       end
 
       it "transforms stop parameter to array" do
@@ -257,33 +257,33 @@ RSpec.describe MistralAI::Resources::Chat do
     it "handles API errors" do
       allow(http_client).to receive(:post).and_raise(MistralAI::APIError.new("API Error"))
 
-      expect {
+      expect do
         chat_resource.complete(
           model: "mistral-small-latest",
           messages: [{ role: "user", content: "Hello" }]
         )
-      }.to raise_error(MistralAI::APIError)
+      end.to raise_error(MistralAI::APIError)
     end
 
     it "wraps unexpected errors" do
       allow(http_client).to receive(:post).and_raise(StandardError.new("Unexpected error"))
 
-      expect {
+      expect do
         chat_resource.complete(
           model: "mistral-small-latest",
           messages: [{ role: "user", content: "Hello" }]
         )
-      }.to raise_error(MistralAI::APIError, /Chat completion failed/)
+      end.to raise_error(MistralAI::APIError, /Chat completion failed/)
     end
 
     it "preserves argument errors" do
-      expect {
+      expect do
         chat_resource.complete(
           model: "mistral-small-latest",
           messages: [{ role: "user", content: "Hello" }],
           tools: "invalid"
         )
-      }.to raise_error(ArgumentError)
+      end.to raise_error(ArgumentError)
     end
   end
-end 
+end

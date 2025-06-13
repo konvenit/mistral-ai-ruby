@@ -82,6 +82,7 @@ module MistralAI
       def validate!
         raise ArgumentError, "Function name cannot be nil or empty" if name.nil? || name.strip.empty?
         raise ArgumentError, "Function name must be a valid identifier" unless valid_name?
+
         validate_parameters! if parameters
       end
 
@@ -90,14 +91,12 @@ module MistralAI
       end
 
       def validate_parameters!
-        unless parameters.is_a?(Hash)
-          raise ArgumentError, "Parameters must be a hash (JSON Schema)"
-        end
+        raise ArgumentError, "Parameters must be a hash (JSON Schema)" unless parameters.is_a?(Hash)
 
         # Basic JSON Schema validation
-        if parameters[:type] && parameters[:type] != "object"
-          raise ArgumentError, "Function parameters must have type 'object'"
-        end
+        return unless parameters[:type] && parameters[:type] != "object"
+
+        raise ArgumentError, "Function parameters must have type 'object'"
       end
 
       def default_parameters
@@ -164,13 +163,11 @@ module MistralAI
 
       def validate!
         valid_types = [AUTO, NONE, "function"]
-        unless valid_types.include?(choice_type)
-          raise ArgumentError, "Invalid tool choice type: #{choice_type}"
-        end
+        raise ArgumentError, "Invalid tool choice type: #{choice_type}" unless valid_types.include?(choice_type)
 
-        if function? && (function_name.nil? || function_name.strip.empty?)
-          raise ArgumentError, "Function name required for function tool choice"
-        end
+        return unless function? && (function_name.nil? || function_name.strip.empty?)
+
+        raise ArgumentError, "Function name required for function tool choice"
       end
     end
 
@@ -311,10 +308,10 @@ module MistralAI
           id = tool_call_data[:id] || tool_call_data["id"]
           type = tool_call_data[:type] || tool_call_data["type"]
           function = tool_call_data[:function] || tool_call_data["function"]
-          
+
           # Skip if missing required fields
           next unless id && type && function
-          
+
           begin
             ToolCall.new(
               id: id,
@@ -341,9 +338,7 @@ module MistralAI
       def self.validate_tools(tools)
         return if tools.nil? || tools.empty?
 
-        unless tools.is_a?(Array)
-          raise ArgumentError, "Tools must be an array"
-        end
+        raise ArgumentError, "Tools must be an array" unless tools.is_a?(Array)
 
         tools.each_with_index do |tool, index|
           validate_tool(tool, index)
@@ -364,26 +359,20 @@ module MistralAI
         end
       end
 
-      private
-
       def self.validate_tool_hash(tool, context)
         # Support both string and symbol keys for flexibility
         type_key = tool["type"] || tool[:type]
         function_key = tool["function"] || tool[:function]
-        
-        unless type_key && function_key
-          raise ArgumentError, "Tool#{context} must have 'type' and 'function' keys"
-        end
 
-        unless type_key == "function"
-          raise ArgumentError, "Tool#{context} type must be 'function'"
-        end
+        raise ArgumentError, "Tool#{context} must have 'type' and 'function' keys" unless type_key && function_key
+
+        raise ArgumentError, "Tool#{context} type must be 'function'" unless type_key == "function"
 
         function = function_key
-        unless function.is_a?(Hash) && (function["name"] || function[:name])
-          raise ArgumentError, "Tool#{context} function must have 'name'"
-        end
+        return if function.is_a?(Hash) && (function["name"] || function[:name])
+
+        raise ArgumentError, "Tool#{context} function must have 'name'"
       end
     end
   end
-end 
+end

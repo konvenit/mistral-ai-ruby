@@ -14,7 +14,7 @@ module MistralAI
 
       def initialize(data = {})
         @authorization_endpoint = data["authorization_endpoint"]
-        @token_endpoint = data["token_endpoint"] 
+        @token_endpoint = data["token_endpoint"]
         @refresh_endpoint = data["refresh_endpoint"]
         @registration_endpoint = data["registration_endpoint"]
         @introspection_endpoint = data["introspection_endpoint"]
@@ -118,7 +118,7 @@ module MistralAI
       # Create authorization URL with state
       def create_authorization_url(auth_endpoint, redirect_uri:, state: nil, scope: nil)
         state ||= SecureRandom.hex(16)
-        
+
         params = {
           response_type: "code",
           client_id: @client_id,
@@ -129,7 +129,7 @@ module MistralAI
 
         query_string = URI.encode_www_form(params)
         auth_url = "#{auth_endpoint}?#{query_string}"
-        
+
         [auth_url, state]
       end
 
@@ -138,18 +138,14 @@ module MistralAI
         # Extract code from authorization response
         uri = URI.parse(authorization_response)
         query_params = URI.decode_www_form(uri.query || "")
-        code = query_params.find { |k, v| k == "code" }&.last
-        
-        unless code
-          raise MCPAuthException, "No authorization code found in response"
-        end
+        code = query_params.find { |k, _v| k == "code" }&.last
+
+        raise MCPAuthException, "No authorization code found in response" unless code
 
         # Validate state if provided
         if state
-          response_state = query_params.find { |k, v| k == "state" }&.last
-          unless response_state == state
-            raise MCPAuthException, "State mismatch in authorization response"
-          end
+          response_state = query_params.find { |k, _v| k == "state" }&.last
+          raise MCPAuthException, "State mismatch in authorization response" unless response_state == state
         end
 
         token_params = {
@@ -165,9 +161,7 @@ module MistralAI
           req.body = URI.encode_www_form(token_params)
         end
 
-        unless response.success?
-          raise MCPAuthException, "Token exchange failed: #{response.body}"
-        end
+        raise MCPAuthException, "Token exchange failed: #{response.body}" unless response.success?
 
         OAuth2Token.new(response.body)
       end
@@ -186,9 +180,7 @@ module MistralAI
           req.body = URI.encode_www_form(token_params)
         end
 
-        unless response.success?
-          raise MCPAuthException, "Token refresh failed: #{response.body}"
-        end
+        raise MCPAuthException, "Token refresh failed: #{response.body}" unless response.success?
 
         OAuth2Token.new(response.body)
       end
@@ -197,20 +189,20 @@ module MistralAI
     # Get well-known OAuth2 authorization server metadata
     def self.get_well_known_authorization_server_metadata(server_url)
       well_known_url = "#{server_url}/.well-known/oauth-authorization-server"
-      
+
       http_client = Faraday.new do |conn|
         conn.adapter Faraday.default_adapter
         conn.response :json
       end
 
       response = http_client.get(well_known_url)
-      
+
       if response.success?
         begin
           metadata = AuthorizationServerMetadata.new(response.body)
           metadata.validate!
           metadata
-        rescue => e
+        rescue StandardError => e
           puts "Failed to parse OAuth well-known metadata: #{e.message}"
           nil
         end
@@ -218,7 +210,7 @@ module MistralAI
         puts "Failed to get OAuth well-known metadata from #{server_url}"
         nil
       end
-    rescue => e
+    rescue StandardError => e
       puts "Error fetching OAuth metadata: #{e.message}"
       nil
     end
@@ -227,7 +219,7 @@ module MistralAI
     def self.dynamic_client_registration(register_endpoint, redirect_url)
       registration_payload = {
         client_name: "MistralSDKClient",
-        grant_types: ["authorization_code", "refresh_token"],
+        grant_types: %w[authorization_code refresh_token],
         token_endpoint_auth_method: "client_secret_basic",
         response_types: ["code"],
         redirect_uris: [redirect_url]
@@ -244,7 +236,7 @@ module MistralAI
       end
 
       unless response.success?
-        raise MCPAuthException, 
+        raise MCPAuthException,
               "Client registration failed: status=#{response.status}, error=#{response.body}"
       end
 
@@ -252,30 +244,26 @@ module MistralAI
       client_id = registration_info["client_id"]
       client_secret = registration_info["client_secret"]
 
-      unless client_id && client_secret
-        raise MCPAuthException, "Registration response missing client credentials"
-      end
+      raise MCPAuthException, "Registration response missing client credentials" unless client_id && client_secret
 
       [client_id, client_secret]
-    rescue => e
+    rescue StandardError => e
       raise MCPAuthException, "Client registration failed: #{e.message}"
     end
 
     # Build OAuth parameters for MCP server
     def self.build_oauth_params(server_url, redirect_url:)
       metadata = get_well_known_authorization_server_metadata(server_url)
-      unless metadata
-        raise MCPAuthException, "Could not retrieve OAuth metadata from server"
-      end
+      raise MCPAuthException, "Could not retrieve OAuth metadata from server" unless metadata
 
-      if metadata.registration_endpoint
-        client_id, client_secret = dynamic_client_registration(
-          metadata.registration_endpoint, 
-          redirect_url
-        )
-      else
+      unless metadata.registration_endpoint
         raise MCPAuthException, "Server does not support dynamic client registration"
       end
+
+      client_id, client_secret = dynamic_client_registration(
+        metadata.registration_endpoint,
+        redirect_url
+      )
 
       OAuthParams.new(
         client_id: client_id,
@@ -284,4 +272,4 @@ module MistralAI
       )
     end
   end
-end 
+end

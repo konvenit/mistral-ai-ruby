@@ -19,7 +19,7 @@ RSpec.describe MistralAI::Resources::Agents do
       {
         "id" => "agentcmpl-456",
         "object" => "chat.completion",
-        "created" => 1677652288,
+        "created" => 1_677_652_288,
         "model" => "mistral-small-latest",
         "choices" => [
           {
@@ -104,21 +104,21 @@ RSpec.describe MistralAI::Resources::Agents do
 
     context "agent_id validation" do
       it "raises error when agent_id is nil" do
-        expect {
+        expect do
           agents_resource.complete(agent_id: nil, messages: messages)
-        }.to raise_error(ArgumentError, "agent_id must be a string")
+        end.to raise_error(ArgumentError, "agent_id must be a string")
       end
 
       it "raises error when agent_id is empty string" do
-        expect {
+        expect do
           agents_resource.complete(agent_id: "", messages: messages)
-        }.to raise_error(ArgumentError, "agent_id is required and cannot be empty")
+        end.to raise_error(ArgumentError, "agent_id is required and cannot be empty")
       end
 
       it "raises error when agent_id is not a string" do
-        expect {
+        expect do
           agents_resource.complete(agent_id: 123, messages: messages)
-        }.to raise_error(ArgumentError, "agent_id must be a string")
+        end.to raise_error(ArgumentError, "agent_id must be a string")
       end
     end
 
@@ -232,21 +232,21 @@ RSpec.describe MistralAI::Resources::Agents do
 
     context "agent_id validation in streaming" do
       it "raises error when agent_id is nil" do
-        expect {
+        expect do
           agents_resource.stream(agent_id: nil, messages: messages)
-        }.to raise_error(ArgumentError, "agent_id must be a string")
+        end.to raise_error(ArgumentError, "agent_id must be a string")
       end
 
       it "raises error when agent_id is empty string" do
-        expect {
+        expect do
           agents_resource.stream(agent_id: "", messages: messages)
-        }.to raise_error(ArgumentError, "agent_id is required and cannot be empty")
+        end.to raise_error(ArgumentError, "agent_id is required and cannot be empty")
       end
 
       it "raises error when agent_id is not a string" do
-        expect {
+        expect do
           agents_resource.stream(agent_id: 123, messages: messages)
-        }.to raise_error(ArgumentError, "agent_id must be a string")
+        end.to raise_error(ArgumentError, "agent_id must be a string")
       end
     end
   end
@@ -259,13 +259,13 @@ RSpec.describe MistralAI::Resources::Agents do
       it "validates tools format" do
         invalid_tools = [{ invalid: "format" }]
 
-        expect {
+        expect do
           agents_resource.complete(
             agent_id: agent_id,
             messages: messages,
             tools: invalid_tools
           )
-        }.to raise_error(ArgumentError, /Invalid tool format/)
+        end.to raise_error(ArgumentError, /Invalid tool format/)
       end
 
       it "validates tool_choice format" do
@@ -276,36 +276,36 @@ RSpec.describe MistralAI::Resources::Agents do
           }
         ]
 
-        expect {
+        expect do
           agents_resource.complete(
             agent_id: agent_id,
             messages: messages,
             tools: tools,
             tool_choice: "invalid_choice"
           )
-        }.to raise_error(ArgumentError, /tool_choice must be/)
+        end.to raise_error(ArgumentError, /tool_choice must be/)
       end
     end
 
     context "response_format validation" do
       it "validates response_format structure" do
-        expect {
+        expect do
           agents_resource.complete(
             agent_id: agent_id,
             messages: messages,
             response_format: { invalid: "format" }
           )
-        }.to raise_error(ArgumentError, /response_format must be a hash with 'type' key/)
+        end.to raise_error(ArgumentError, /response_format must be a hash with 'type' key/)
       end
 
       it "validates response_format type" do
-        expect {
+        expect do
           agents_resource.complete(
             agent_id: agent_id,
             messages: messages,
             response_format: { type: "invalid_type" }
           )
-        }.to raise_error(ArgumentError, /response_format type must be one of/)
+        end.to raise_error(ArgumentError, /response_format type must be one of/)
       end
     end
   end
@@ -315,26 +315,26 @@ RSpec.describe MistralAI::Resources::Agents do
     let(:messages) { [{ role: "user", content: "Test" }] }
 
     it "preserves ArgumentError exceptions" do
-      expect {
+      expect do
         agents_resource.complete(agent_id: nil, messages: messages)
-      }.to raise_error(ArgumentError)
+      end.to raise_error(ArgumentError)
     end
 
     it "preserves MistralAI::APIError exceptions" do
       api_error = MistralAI::APIError.new("API failed")
       allow(agents_resource).to receive(:post).and_raise(api_error)
 
-      expect {
+      expect do
         agents_resource.complete(agent_id: agent_id, messages: messages)
-      }.to raise_error(MistralAI::APIError, "API failed")
+      end.to raise_error(MistralAI::APIError, "API failed")
     end
 
     it "wraps other exceptions in MistralAI::APIError" do
       allow(agents_resource).to receive(:post).and_raise(StandardError.new("Unknown error"))
 
-      expect {
+      expect do
         agents_resource.complete(agent_id: agent_id, messages: messages)
-      }.to raise_error(MistralAI::APIError, "Agent completion failed: Unknown error")
+      end.to raise_error(MistralAI::APIError, "Agent completion failed: Unknown error")
     end
   end
-end 
+end
