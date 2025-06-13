@@ -34,6 +34,7 @@ module MistralAI
       private
 
       def handle_response(response)
+        return response if response.is_a?(Hash)
         case response.code
         when '200'
           JSON.parse(response.body)

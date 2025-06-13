@@ -10,54 +10,119 @@ RSpec.describe MistralAI::Resources::OCR do
     context 'with valid parameters' do
       let(:model) { 'mistral-ocr' }
       let(:document) { { url: 'https://example.com/sample.pdf' } }
+      let(:success_response) do
+        {
+          'text' => 'Sample text from document',
+          'pages' => [
+            {
+              'page_number' => 1,
+              'text' => 'Page 1 content',
+              'images' => []
+            }
+          ]
+        }
+      end
+
+      before do
+        stub_request(:post, 'https://api.mistral.ai/v1/ocr')
+          .with(
+            body: {
+              model: model,
+              document: document
+            }.to_json
+          )
+          .to_return(
+            status: 200,
+            body: success_response.to_json,
+            headers: { 'Content-Type' => 'application/json' }
+          )
+      end
 
       it 'processes document successfully' do
-        VCR.use_cassette('ocr/process_success') do
-          response = ocr.process(model: model, document: document)
-          
-          expect(response).to be_a(Hash)
-          expect(response).to include('text', 'pages')
-          expect(response['pages']).to be_an(Array)
-        end
+        response = ocr.process(model: model, document: document)
+        
+        expect(response).to be_a(Hash)
+        expect(response).to include('text', 'pages')
+        expect(response['pages']).to be_an(Array)
       end
 
       it 'handles optional parameters' do
-        VCR.use_cassette('ocr/process_with_options') do
-          response = ocr.process(
-            model: model,
-            document: document,
-            pages: [0, 1],
-            include_image_base64: true,
-            image_limit: 5,
-            image_min_size: 100
+        options = {
+          pages: [0, 1],
+          include_image_base64: true,
+          image_limit: 5,
+          image_min_size: 100
+        }
+
+        stub_request(:post, 'https://api.mistral.ai/v1/ocr')
+          .with(
+            body: {
+              model: model,
+              document: document,
+              **options
+            }.to_json
           )
-          
-          expect(response).to be_a(Hash)
-          expect(response['pages'].length).to be <= 2
-        end
+          .to_return(
+            status: 200,
+            body: success_response.to_json,
+            headers: { 'Content-Type' => 'application/json' }
+          )
+
+        response = ocr.process(
+          model: model,
+          document: document,
+          **options
+        )
+        
+        expect(response).to be_a(Hash)
+        expect(response['pages'].length).to be <= 2
       end
 
       it 'handles document with base64 content' do
-        VCR.use_cassette('ocr/process_base64') do
-          base64_content = Base64.strict_encode64(File.read('spec/fixtures/sample.pdf'))
-          response = ocr.process(
-            model: model,
-            document: { content: base64_content }
+        base64_content = Base64.strict_encode64(File.read('spec/fixtures/sample.pdf'))
+        base64_document = { content: base64_content }
+
+        stub_request(:post, 'https://api.mistral.ai/v1/ocr')
+          .with(
+            body: {
+              model: model,
+              document: base64_document
+            }.to_json
           )
-          
-          expect(response).to be_a(Hash)
-          expect(response).to include('text', 'pages')
-        end
+          .to_return(
+            status: 200,
+            body: success_response.to_json,
+            headers: { 'Content-Type' => 'application/json' }
+          )
+
+        response = ocr.process(
+          model: model,
+          document: base64_document
+        )
+        
+        expect(response).to be_a(Hash)
+        expect(response).to include('text', 'pages')
       end
     end
 
     context 'with invalid parameters' do
       it 'raises an error with invalid model' do
-        VCR.use_cassette('ocr/process_invalid_model') do
-          expect {
-            ocr.process(model: 'invalid-model', document: { url: 'https://example.com/doc.pdf' })
-          }.to raise_error(MistralAI::APIError)
-        end
+        stub_request(:post, 'https://api.mistral.ai/v1/ocr')
+          .with(
+            body: {
+              model: 'invalid-model',
+              document: { url: 'https://example.com/doc.pdf' }
+            }.to_json
+          )
+          .to_return(
+            status: 400,
+            body: { error: 'Invalid model' }.to_json,
+            headers: { 'Content-Type' => 'application/json' }
+          )
+
+        expect {
+          ocr.process(model: 'invalid-model', document: { url: 'https://example.com/doc.pdf' })
+        }.to raise_error(MistralAI::BadRequestError)
       end
 
       it 'raises an error with invalid document' do
@@ -71,14 +136,37 @@ RSpec.describe MistralAI::Resources::OCR do
   describe '#process_async' do
     let(:model) { 'mistral-ocr' }
     let(:document) { { url: 'https://example.com/sample.pdf' } }
+    let(:success_response) do
+      {
+        'text' => 'Sample text from document',
+        'pages' => [
+          {
+            'page_number' => 1,
+            'text' => 'Page 1 content',
+            'images' => []
+          }
+        ]
+      }
+    end
 
     it 'processes document asynchronously' do
-      VCR.use_cassette('ocr/process_async_success') do
-        response = ocr.process_async(model: model, document: document)
-        
-        expect(response).to be_a(Hash)
-        expect(response).to include('text', 'pages')
-      end
+      stub_request(:post, 'https://api.mistral.ai/v1/ocr/async')
+        .with(
+          body: {
+            model: model,
+            document: document
+          }.to_json
+        )
+        .to_return(
+          status: 200,
+          body: success_response.to_json,
+          headers: { 'Content-Type' => 'application/json' }
+        )
+
+      response = ocr.process_async(model: model, document: document)
+      
+      expect(response).to be_a(Hash)
+      expect(response).to include('text', 'pages')
     end
   end
 end 

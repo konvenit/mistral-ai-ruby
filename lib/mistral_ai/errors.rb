@@ -19,6 +19,8 @@ module MistralAI
     end
   end
 
+  class ValidationError < APIError; end
+
   # Specific API error types
   class AuthenticationError < APIError; end # 401
   class PermissionError < APIError; end     # 403
