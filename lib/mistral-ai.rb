@@ -19,6 +19,9 @@ require_relative "mistral-ai/structured_outputs"
 # MCP (Model Context Protocol) Support
 require_relative "mistral-ai/mcp"
 
+# Rails integration
+require_relative "mistral-ai/railtie" if defined?(Rails)
+
 module MistralAI
   class << self
     # Global configuration
@@ -31,8 +34,15 @@ module MistralAI
     end
 
     # Convenience method to create a client with global config
-    def client(api_key: nil)
-      Client.new(api_key: api_key || configuration.api_key)
+    def client(api_key: nil, base_url: nil, timeout: nil, logger: nil, max_retries: nil, retry_delay: nil)
+      Client.new(
+        api_key: api_key,
+        base_url: base_url,
+        timeout: timeout,
+        logger: logger,
+        max_retries: max_retries,
+        retry_delay: retry_delay
+      )
     end
   end
 end

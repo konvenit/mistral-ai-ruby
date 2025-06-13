@@ -13,17 +13,20 @@ module MistralAI
       @logger = nil
     end
 
-    def api_key!
+    def validate!
       api_key || raise(ConfigurationError,
                        "API key is required. Set MISTRAL_API_KEY environment variable or configure manually.")
     end
 
-    def api_key?
-      !api_key.nil? && !api_key.empty?
-    end
-
-    def validate!
-      api_key!
+    def copy(api_key: nil, base_url: nil, timeout: nil, logger: nil, max_retries: nil, retry_delay: nil)
+      config = Configuration.new
+      config.api_key = api_key || @api_key
+      config.base_url = base_url || @base_url
+      config.timeout = timeout || @timeout
+      config.logger = logger || @logger
+      config.max_retries = max_retries || @max_retries
+      config.retry_delay = retry_delay || @retry_delay
+      config
     end
   end
 end

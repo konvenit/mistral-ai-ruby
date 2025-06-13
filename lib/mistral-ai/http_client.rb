@@ -65,7 +65,7 @@ module MistralAI
     def build_connection
       Faraday.new(url: @configuration.base_url) do |conn|
         # Request middleware
-        conn.request :authorization, "Bearer", @configuration.api_key!
+        conn.request :authorization, "Bearer", @configuration.api_key
         conn.request :json
 
         # Response middleware

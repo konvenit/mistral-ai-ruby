@@ -25,27 +25,6 @@ RSpec.describe MistralAI::Configuration do
     end
   end
 
-  describe "#api_key!" do
-    context "when api_key is set" do
-      before { config.api_key = "test-key" }
-
-      it "returns the api_key" do
-        expect(config.api_key!).to eq("test-key")
-      end
-    end
-
-    context "when api_key is not set" do
-      before { config.api_key = nil }
-
-      it "raises ConfigurationError" do
-        expect { config.api_key! }.to raise_error(
-          MistralAI::ConfigurationError,
-          /API key is required/
-        )
-      end
-    end
-  end
-
   describe "#validate!" do
     context "when api_key is set" do
       before { config.api_key = "test-key" }
