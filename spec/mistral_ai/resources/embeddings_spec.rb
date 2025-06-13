@@ -121,10 +121,10 @@ RSpec.describe MistralAI::Resources::Embeddings do
         }.to raise_error(MistralAI::BadRequestError)
       end
 
-      it 'raises an error with empty inputs' do
+      it 'raises an error with empty input' do
         expect {
           embeddings.create(model: 'mistral-embed', input: [])
-        }.to raise_error(ArgumentError, 'inputs cannot be empty')
+        }.to raise_error(ArgumentError, 'input cannot be empty')
       end
     end
   end
