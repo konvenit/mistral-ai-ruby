@@ -49,3 +49,21 @@ Layout/EmptyLinesAroundModuleBody:
 
 Capybara/RSpec/PredicateMatcher:
   Enabled: false
+
+RSpec/MultipleExpectations:
+  Max: 5
+
+RSpec/ExampleLength:
+  Max: 30
+
+Style/SafeNavigationChainLength:
+  Enabled: false
+
+RSpec/NestedGroups:
+  Max: 5
+
+Metrics/ParameterLists:
+  Max: 6
+
+Metrics/ClassLength:
+  Max: 200
