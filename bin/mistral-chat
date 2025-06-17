@@ -218,8 +218,5 @@ class MistralChatCLI
   end
 end
 
-# Main execution
-if __FILE__ == $0
-  cli = MistralChatCLI.new
-  cli.run
-end 
+cli = MistralChatCLI.new
+cli.run
